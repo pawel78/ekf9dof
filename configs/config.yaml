@@ -1,0 +1,32 @@
+sensor:
+  # I2C addresses (7-bit)
+  addr_ag: 0x6B   # gyro+accel
+  addr_m:  0x1D   # magnetometer
+  odr:
+    gyro_hz: 380
+    accel_hz: 380
+    mag_hz:   50
+  ranges:
+    gyro_dps: 500
+    accel_g:  4
+    mag_gauss: 4
+
+calibration:
+  gyro_bias: [0.0, 0.0, 0.0]
+  accel_bias: [0.0, 0.0, 0.0]
+  accel_scale: [1.0, 1.0, 1.0]
+  mag_bias:  [0.0, 0.0, 0.0]
+  mag_matrix: [1.0,0.0,0.0,
+               0.0,1.0,0.0,
+               0.0,0.0,1.0]
+
+ekf:
+  Qa_bias: 1.0e-6
+  Qg_bias: 1.0e-6
+  Ra: 4.0e-4     # (0.02 g)^2
+  Rm: 4.0e-4     # (~0.02 gauss)^2
+  gravity_mps2: 9.80665
+  magnetic_ned: [0.2, 0.0, 0.45]  # rough; update to your locale
+
+runtime:
+  log_path: "logs/run.csv"

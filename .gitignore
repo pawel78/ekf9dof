@@ -1,0 +1,21 @@
+## Git ignore (.gitignore)
+
+# Build artifacts
+/build/
+/cmake-build-*/
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+Testing/
+Makefile
+install_manifest.txt
+compile_commands.json
+
+# Logs & outputs
+logs/
+*.csv
+*.bin
+*.png
+*.pdf
+
