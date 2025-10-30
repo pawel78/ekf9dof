@@ -16,7 +16,7 @@ private:
     int fd; // File descriptor for I2C device
 
 public:
-    explicit I2CDevice(const char* device = "/dev/i2c-1") {
+    explicit I2CDevice(const char* device = "/dev/i2c-7") {
         // Open I2C device
         fd = open(device, O_RDWR);
         if (fd < 0) {
@@ -70,7 +70,7 @@ public:
 
     // Static singleton used by the exported functions below
     static I2CDevice &singleton() {
-        static I2CDevice dev("/dev/i2c-1");
+        static I2CDevice dev("/dev/i2c-7");
         return dev;
     }
 };
