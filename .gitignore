@@ -21,3 +21,7 @@ logs/
 *.png
 *.pdf
 
+
+# Python cache
+__pycache__/
+*.pyc
