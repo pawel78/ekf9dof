@@ -9,9 +9,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Enable optimization flags for Release builds
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
-# Option to enable sensor test mode (displays sensor values to screen)
-option(ENABLE_SENSOR_TEST "Enable sensor test mode (displays values instead of logging)" OFF)
-
 # Collect all source files
 file(GLOB_RECURSE SOURCES 
     "src/*.cpp"
@@ -26,11 +23,6 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC 
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-
-# Add preprocessor definition if ENABLE_SENSOR_TEST is ON
-if(ENABLE_SENSOR_TEST)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE ENABLE_SENSOR_TEST=1)
-endif()
 
 # Enable testing
 enable_testing()
