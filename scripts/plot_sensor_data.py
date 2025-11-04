@@ -7,26 +7,35 @@ from the LSM9DS0. It generates 4 time series plots for gyroscope, accelerometer,
 magnetometer, and temperature data.
 
 Usage:
-    python plot_sensor_data.py <path_to_csv_file>
+    python plot_sensor_data.py <path_to_csv_file> [--save-plots]
     
     Or to use the most recent sensor data file:
-    python plot_sensor_data.py
+    python plot_sensor_data.py [--save-plots]
+    
+Options:
+    --save-plots    Save plots as PNG files without prompting
 """
 
 import sys
 import os
 import glob
+import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-def find_latest_sensor_file():
-    """Find the most recent sensor data CSV file."""
-    sensor_files = glob.glob('../sensor_data_*.csv')
+def find_latest_sensor_file(search_dir='.'):
+    """Find the most recent sensor data CSV file.
+    
+    Args:
+        search_dir: Directory to search for sensor data files (default: current directory)
+    """
+    # Try parent directory first (common when running from scripts/)
+    sensor_files = glob.glob(os.path.join(search_dir, '..', 'sensor_data_*.csv'))
     if not sensor_files:
         # Try current directory
-        sensor_files = glob.glob('sensor_data_*.csv')
+        sensor_files = glob.glob(os.path.join(search_dir, 'sensor_data_*.csv'))
     
     if sensor_files:
         return max(sensor_files, key=os.path.getctime)
@@ -227,29 +236,57 @@ def plot_combined(df, save_fig=False):
 
 def main():
     """Main function."""
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(
+        description='Visualize LSM9DS0 sensor data from CSV files',
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        'filename',
+        nargs='?',
+        help='Path to sensor data CSV file (default: auto-detect most recent file)'
+    )
+    parser.add_argument(
+        '--save-plots',
+        action='store_true',
+        help='Save plots as PNG files without prompting'
+    )
+    parser.add_argument(
+        '--search-dir',
+        default='.',
+        help='Directory to search for sensor data files (default: current directory)'
+    )
+    
+    args = parser.parse_args()
+    
     # Configure matplotlib
     plt.style.use('seaborn-v0_8-darkgrid')
     
     # Determine which file to use
-    if len(sys.argv) > 1:
-        filename = sys.argv[1]
+    if args.filename:
+        filename = args.filename
     else:
-        filename = find_latest_sensor_file()
+        filename = find_latest_sensor_file(args.search_dir)
         if filename is None:
             print("Error: No sensor data CSV file found.")
+            print(f"Searched in: {args.search_dir} and parent directory")
             print("Usage: python plot_sensor_data.py <path_to_csv_file>")
             sys.exit(1)
     
     # Load data
     df = load_sensor_data(filename)
     
-    # Ask user if they want to save figures
-    try:
-        response = input("\nSave plots as PNG files? (y/n, default=n): ").strip().lower()
-        save_fig = response == 'y'
-    except (EOFError, KeyboardInterrupt):
-        save_fig = False
-        print()
+    # Determine if we should save figures
+    if args.save_plots:
+        save_fig = True
+    else:
+        # Ask user if they want to save figures (only in interactive mode)
+        try:
+            response = input("\nSave plots as PNG files? (y/n, default=n): ").strip().lower()
+            save_fig = response == 'y'
+        except (EOFError, KeyboardInterrupt):
+            save_fig = False
+            print()
     
     # Generate all plots
     print("\nGenerating plots...\n")

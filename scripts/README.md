@@ -55,14 +55,20 @@ pip install pandas matplotlib numpy
 # Plot the most recent sensor data file
 python plot_sensor_data.py
 
-# Or specify a specific file
+# Specify a specific file
 python plot_sensor_data.py path/to/sensor_data.csv
+
+# Automatically save plots as PNG files
+python plot_sensor_data.py --save-plots
+
+# Search in a specific directory for data files
+python plot_sensor_data.py --search-dir /path/to/data
 ```
 
 The script will:
 - Display all 4 plots (gyroscope, accelerometer, magnetometer, temperature)
 - Print statistics for each sensor
-- Optionally save plots as PNG files
+- Optionally save plots as PNG files (use `--save-plots` flag or interactive prompt)
 
 ### Data Format
 
