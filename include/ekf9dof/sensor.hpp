@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <stdexcept>
 
 namespace ekf9dof {
 
@@ -49,10 +50,14 @@ public:
     /**
      * @brief Store new measurement data from raw pointer
      * 
-     * @param data Pointer to array of measurements
+     * @param data Pointer to array of measurements (must not be null)
      * @param timestamp Optional timestamp for the measurement
+     * @throws std::invalid_argument if data is null
      */
     void store(const float* data, uint64_t timestamp = 0) {
+        if (data == nullptr) {
+            throw std::invalid_argument("Sensor::store: data pointer cannot be null");
+        }
         for (size_t i = 0; i < N; ++i) {
             measurements_[i] = data[i];
         }
@@ -74,8 +79,12 @@ public:
      * 
      * @param index Index of the measurement to retrieve
      * @return float The measurement value
+     * @throws std::out_of_range if index is out of bounds
      */
     float get_measurement(size_t index) const {
+        if (index >= N) {
+            throw std::out_of_range("Sensor::get_measurement: index out of range");
+        }
         return measurements_[index];
     }
 

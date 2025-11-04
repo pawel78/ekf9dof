@@ -211,6 +211,53 @@ void test_gps_sensor_storage() {
     std::cout << "  ✓ GPS sensor storage test passed" << std::endl;
 }
 
+void test_null_pointer_protection() {
+    std::cout << "Testing null pointer protection..." << std::endl;
+    
+    Sensor3D accel("accel");
+    float* null_data = nullptr;
+    
+    bool exception_thrown = false;
+    try {
+        accel.store(null_data);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+        std::string msg = e.what();
+        assert(msg.find("null") != std::string::npos);
+    }
+    
+    assert(exception_thrown);
+    std::cout << "  ✓ Null pointer protection test passed" << std::endl;
+}
+
+void test_bounds_checking() {
+    std::cout << "Testing bounds checking..." << std::endl;
+    
+    Sensor3D gyro("gyro");
+    std::array<float, 3> data = {1.0f, 2.0f, 3.0f};
+    gyro.store(data);
+    
+    // Valid access
+    float val = gyro.get_measurement(0);
+    assert(float_equal(val, 1.0f));
+    
+    val = gyro.get_measurement(2);
+    assert(float_equal(val, 3.0f));
+    
+    // Invalid access - should throw
+    bool exception_thrown = false;
+    try {
+        gyro.get_measurement(3);  // Out of bounds
+    } catch (const std::out_of_range& e) {
+        exception_thrown = true;
+        std::string msg = e.what();
+        assert(msg.find("out of range") != std::string::npos);
+    }
+    
+    assert(exception_thrown);
+    std::cout << "  ✓ Bounds checking test passed" << std::endl;
+}
+
 int main() {
     std::cout << "Running Sensor class tests..." << std::endl;
     std::cout << "==============================" << std::endl;
@@ -226,6 +273,8 @@ int main() {
         test_new_data_flag_overflow();
         test_consumer_pattern();
         test_gps_sensor_storage();
+        test_null_pointer_protection();
+        test_bounds_checking();
         
         std::cout << "==============================" << std::endl;
         std::cout << "All tests passed! ✓" << std::endl;
