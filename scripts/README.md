@@ -2,6 +2,53 @@
 
 This folder contains analysis and visualization scripts for the ekf9dof project.
 
+## Quick Start
+
+### Prerequisites
+- Python 3.8 or higher
+- pip (Python package manager)
+
+### Setup Virtual Environment (Recommended)
+
+Using a virtual environment keeps project dependencies isolated and avoids conflicts with system packages.
+
+#### Option 1: Using venv (built-in)
+```bash
+# Navigate to the project root
+cd /path/to/ekf9dof
+
+# Create virtual environment
+python3 -m venv .venv
+
+# Activate virtual environment
+# On macOS/Linux:
+source .venv/bin/activate
+# On Windows:
+# .venv\Scripts\activate
+
+# Install dependencies
+pip install --upgrade pip
+pip install pandas matplotlib numpy jupyter
+```
+
+#### Option 2: Using conda
+```bash
+# Create conda environment
+conda create -n ekf9dof python=3.11
+
+# Activate environment
+conda activate ekf9dof
+
+# Install dependencies
+conda install pandas matplotlib numpy jupyter
+```
+
+### Verify Installation
+```bash
+# Check that packages are installed
+python -c "import pandas, matplotlib, numpy, jupyter; print('All packages installed successfully!')"
+```
+
 ## Sensor Data Visualization
 
 Two options are available for visualizing sensor data:
@@ -10,7 +57,7 @@ Two options are available for visualizing sensor data:
 
 Jupyter notebook for visualizing LSM9DS0 sensor data collected by the main program.
 
-### Features
+#### Features
 
 - **4 Time Series Plots:**
   1. **Gyroscope**: Angular rates (x, y, z) in degrees/second
@@ -22,11 +69,18 @@ Jupyter notebook for visualizing LSM9DS0 sensor data collected by the main progr
 - **Combined View**: All sensors in a single figure for easy comparison
 - **Statistics**: Automatic calculation of mean, std, min, max, and range for all sensors
 
-### Requirements
+#### Required Dependencies
 
 ```bash
+# With virtual environment activated:
 pip install pandas matplotlib numpy jupyter
 ```
+
+**Package versions used:**
+- pandas >= 1.5.0
+- matplotlib >= 3.5.0
+- numpy >= 1.23.0
+- jupyter >= 1.0.0
 
 ### Usage
 

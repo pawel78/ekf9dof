@@ -1,0 +1,14 @@
+# Python dependencies for ekf9dof sensor data visualization
+# Install with: pip install -r requirements.txt
+
+# Core data analysis and visualization
+pandas>=1.5.0
+matplotlib>=3.5.0
+numpy>=1.23.0
+
+# Jupyter notebook support
+jupyter>=1.0.0
+ipykernel>=6.0.0
+
+# Optional: Enhanced notebook experience
+ipywidgets>=8.0.0
