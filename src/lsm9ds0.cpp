@@ -168,5 +168,26 @@ float raw_to_celsius(int16_t raw_temp) {
     return (raw_temp / 8.0f) + 25.0f;
 }
 
+// Convert raw gyroscope values to degrees per second (dps)
+// Assumes ±245 dps full scale (sensitivity: 8.75 mdps/LSB)
+// Formula: dps = raw * 0.00875
+float raw_to_dps(int16_t raw_gyro) {
+    return raw_gyro * 0.00875f;
+}
+
+// Convert raw accelerometer values to g (gravitational acceleration)
+// Assumes ±2g full scale (sensitivity: 0.061 mg/LSB)
+// Formula: g = raw * 0.061 / 1000 = raw * 0.000061
+float raw_to_g(int16_t raw_accel) {
+    return raw_accel * 0.000061f;
+}
+
+// Convert raw magnetometer values to gauss
+// Assumes ±2 gauss full scale (sensitivity: 0.08 mgauss/LSB)
+// Formula: gauss = raw * 0.08 / 1000 = raw * 0.00008
+float raw_to_gauss(int16_t raw_mag) {
+    return raw_mag * 0.00008f;
+}
+
 } // namespace lsm9ds0_device
 

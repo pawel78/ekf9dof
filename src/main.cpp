@@ -31,19 +31,25 @@ int main() {
             bool tok  = lsm9ds0_device::read_temperature(temp); // Reading temperature into temp
 
             if (aok) {
-                std::cout << "ACC: " << ax << ", " << ay << ", " << az << "\n";
+                std::cout << "ACC: " << lsm9ds0_device::raw_to_g(ax) << " g, " 
+                          << lsm9ds0_device::raw_to_g(ay) << " g, " 
+                          << lsm9ds0_device::raw_to_g(az) << " g\n";
             } else {
                 std::cout << "ACC: read error\n";
             }
 
             if (gok) {
-                std::cout << "GYR: " << gx << ", " << gy << ", " << gz << "\n";
+                std::cout << "GYR: " << lsm9ds0_device::raw_to_dps(gx) << " °/s, " 
+                          << lsm9ds0_device::raw_to_dps(gy) << " °/s, " 
+                          << lsm9ds0_device::raw_to_dps(gz) << " °/s\n";
             } else {
                 std::cout << "GYR: read error\n";
             }
 
             if (mok) {
-                std::cout << "MAG: " << mx << ", " << my << ", " << mz << "\n";
+                std::cout << "MAG: " << lsm9ds0_device::raw_to_gauss(mx) << " gauss, " 
+                          << lsm9ds0_device::raw_to_gauss(my) << " gauss, " 
+                          << lsm9ds0_device::raw_to_gauss(mz) << " gauss\n";
             } else {
                 std::cout << "MAG: read error\n";
             }
