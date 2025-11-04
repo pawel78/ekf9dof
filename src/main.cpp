@@ -6,7 +6,7 @@
 int main() {
     try {
         // Verify device by reading WHO_AM_I registers
-        if (!lsm9ds0_device::verify_device()) {
+        if (!lsm9ds0_device::verify_device_ids()) {
             std::cerr << "Error: LSM9DS0 device not found or incorrect WHO_AM_I response.\n";
             return 1;
         }
