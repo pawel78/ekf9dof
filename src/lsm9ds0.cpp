@@ -99,7 +99,8 @@ bool read16_le(uint8_t dev_addr, uint8_t reg_low, int16_t &out) {
         uint8_t hi = I2CDevice::singleton().read_reg(dev_addr, reg_low + 1);
         out = static_cast<int16_t>(static_cast<uint16_t>(lo) | (static_cast<uint16_t>(hi) << 8));
         return true;
-    } catch (...) {
+    } catch (const std::system_error& e) {
+        // Optionally log: std::cerr << "I2C read error: " << e.what() << std::endl;
         return false;
     }
 }
@@ -147,6 +148,12 @@ bool read_temperature(int16_t &temp) {
     } catch (...) {
         return false;
     }
+}
+
+// Convert raw 12-bit temperature value to degrees Celsius
+// Formula from LSM9DS0 datasheet: T(°C) = raw/8 + 25
+float temperature_to_celsius(int16_t raw_temp) {
+    return (raw_temp / 8.0f) + 25.0f;
 }
 
 } // namespace lsm9ds0_device
