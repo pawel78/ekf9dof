@@ -84,10 +84,14 @@ void i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t value) {
 
 void configure_imu() {
     // call the example config functions using the exported i2c_write
-    lsm9ds0_config_example::configure_gyroscope(i2c_write);
-    lsm9ds0_config_example::configure_accelerometer(i2c_write);
-    lsm9ds0_config_example::configure_magnetometer(i2c_write);
+    lsm9ds0_config::configure_gyroscope(i2c_write);
+    lsm9ds0_config::configure_accelerometer(i2c_write);
+    lsm9ds0_config::configure_magnetometer(i2c_write);
 }
+
+void configure_temperature_sensor() {
+    lsm9ds0_config::configure_temperature_sensor(i2c_write);
+}   
 
 bool read16_le(uint8_t dev_addr, uint8_t reg_low, int16_t &out) {
     try {
@@ -95,7 +99,8 @@ bool read16_le(uint8_t dev_addr, uint8_t reg_low, int16_t &out) {
         uint8_t hi = I2CDevice::singleton().read_reg(dev_addr, reg_low + 1);
         out = static_cast<int16_t>(static_cast<uint16_t>(lo) | (static_cast<uint16_t>(hi) << 8));
         return true;
-    } catch (...) {
+    } catch (const std::system_error& e) {
+        // Optionally log: std::cerr << "I2C read error: " << e.what() << std::endl;
         return false;
     }
 }
@@ -116,6 +121,39 @@ bool read_mag(int16_t &x, int16_t &y, int16_t &z) {
     return read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_X_L_M, x) &&
            read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_Y_L_M, y) &&
            read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_Z_L_M, z);
+}
+
+bool read_temperature(int16_t &temp) {
+    try {
+        // Read low and high temperature registers (little-endian)
+        uint8_t lo = I2CDevice::singleton().read_reg(lsm9ds0::XM_ADDR, lsm9ds0::OUT_TEMP_L_XM);
+        uint8_t hi = I2CDevice::singleton().read_reg(lsm9ds0::XM_ADDR, lsm9ds0::OUT_TEMP_H_XM);
+
+        // Temperature is a 12-bit, two's-complement, right-justified value stored in
+        // OUT_TEMP_L_XM (low) and OUT_TEMP_H_XM (high). Combine, mask to 12 bits and
+        // sign-extend to a 16-bit signed integer.
+        uint16_t raw = static_cast<uint16_t>(lo) | (static_cast<uint16_t>(hi) << 8);
+        raw &= 0x0FFF; // keep only lower 12 bits
+
+        int16_t signed12;
+        if (raw & 0x0800) {
+            // negative: set upper 4 bits to 1
+            signed12 = static_cast<int16_t>(raw | 0xF000);
+        } else {
+            signed12 = static_cast<int16_t>(raw);
+        }
+
+        temp = signed12;
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
+// Convert raw 12-bit temperature value to degrees Celsius
+// Formula from LSM9DS0 datasheet: T(°C) = raw/8 + 25
+float raw_to_celsius(int16_t raw_temp) {
+    return (raw_temp / 8.0f) + 25.0f;
 }
 
 } // namespace lsm9ds0_device

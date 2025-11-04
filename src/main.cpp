@@ -8,16 +8,21 @@ int main() {
         // Configure IMU
         lsm9ds0_device::configure_imu();
 
+        // Configure temperature sensor
+        lsm9ds0_device::configure_temperature_sensor();
+
         std::cout << "LSM9DS0 configured. Reading sensor values...\n";
 
         while (true) {
             int16_t ax, ay, az;
             int16_t gx, gy, gz;
             int16_t mx, my, mz;
+            int16_t temp;
 
             bool aok = lsm9ds0_device::read_accel(ax, ay, az);
             bool gok = lsm9ds0_device::read_gyro(gx, gy, gz);
             bool mok = lsm9ds0_device::read_mag(mx, my, mz);
+            bool tok  = lsm9ds0_device::read_temperature(temp); // Reading temperature into temp
 
             if (aok) {
                 std::cout << "ACC: " << ax << ", " << ay << ", " << az << "\n";
@@ -36,6 +41,12 @@ int main() {
             } else {
                 std::cout << "MAG: read error\n";
             }
+
+            if (tok) {
+                std::cout << "TEMP: " << lsm9ds0_device::raw_to_celsius(temp) << " °C\n";
+            } else {
+                std::cout << "TEMP: read error\n";
+            }   
 
             std::cout << "----" << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
