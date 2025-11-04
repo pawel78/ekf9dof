@@ -89,6 +89,10 @@ void configure_imu() {
     lsm9ds0_config::configure_magnetometer(i2c_write);
 }
 
+void configure_temperature_sensor() {
+    lsm9ds0_config::configure_temperature_sensor(i2c_write);
+}   
+
 bool read16_le(uint8_t dev_addr, uint8_t reg_low, int16_t &out) {
     try {
         uint8_t lo = I2CDevice::singleton().read_reg(dev_addr, reg_low);
