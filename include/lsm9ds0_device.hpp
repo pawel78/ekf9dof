@@ -25,6 +25,6 @@ bool read_temperature(int16_t &temp);
 
 // Convert raw 12-bit temperature value to degrees Celsius
 // Formula: T(°C) = raw/8 + 25
-float temperature_to_celsius(int16_t raw_temp);
+float raw_to_celsius(int16_t raw_temp);
 
 } // namespace lsm9ds0_device

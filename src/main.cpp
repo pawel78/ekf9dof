@@ -22,7 +22,7 @@ int main() {
             bool aok = lsm9ds0_device::read_accel(ax, ay, az);
             bool gok = lsm9ds0_device::read_gyro(gx, gy, gz);
             bool mok = lsm9ds0_device::read_mag(mx, my, mz);
-            bool tok  = lsm9ds0_device::read_temperature(temp); // Reusing gx for temperature
+            bool tok  = lsm9ds0_device::read_temperature(temp); // Reading temperature into temp
 
             if (aok) {
                 std::cout << "ACC: " << ax << ", " << ay << ", " << az << "\n";
@@ -43,7 +43,7 @@ int main() {
             }
 
             if (tok) {
-                std::cout << "TEMP: " << temp << "\n";
+                std::cout << "TEMP: " << lsm9ds0_device::raw_to_celsius(temp) << " °C\n";
             } else {
                 std::cout << "TEMP: read error\n";
             }   
