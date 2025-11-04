@@ -150,6 +150,18 @@ bool read_temperature(int16_t &temp) {
     }
 }
 
+// verify who am i registers on the gyro and accel/mag devices
+// Returns true if both match expected values, false otherwise
+bool verify_device_ids() {
+    try {
+        uint8_t whoami_g = I2CDevice::singleton().read_reg(lsm9ds0::G_ADDR, lsm9ds0::WHO_AM_I_G);
+        uint8_t whoami_xm = I2CDevice::singleton().read_reg(lsm9ds0::XM_ADDR, lsm9ds0::WHO_AM_I_XM);
+        return (whoami_g == 0b11010100) && (whoami_xm == 0b01001001);
+    } catch (...) {
+        return false;
+    }
+}
+
 // Convert raw 12-bit temperature value to degrees Celsius
 // Formula from LSM9DS0 datasheet: T(°C) = raw/8 + 25
 float raw_to_celsius(int16_t raw_temp) {

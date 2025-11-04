@@ -27,4 +27,6 @@ bool read_temperature(int16_t &temp);
 // Formula: T(°C) = raw/8 + 25
 float raw_to_celsius(int16_t raw_temp);
 
+bool verify_device_ids();
+
 } // namespace lsm9ds0_device
