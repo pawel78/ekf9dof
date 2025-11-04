@@ -84,9 +84,9 @@ void i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t value) {
 
 void configure_imu() {
     // call the example config functions using the exported i2c_write
-    lsm9ds0_config_example::configure_gyroscope(i2c_write);
-    lsm9ds0_config_example::configure_accelerometer(i2c_write);
-    lsm9ds0_config_example::configure_magnetometer(i2c_write);
+    lsm9ds0_config::configure_gyroscope(i2c_write);
+    lsm9ds0_config::configure_accelerometer(i2c_write);
+    lsm9ds0_config::configure_magnetometer(i2c_write);
 }
 
 bool read16_le(uint8_t dev_addr, uint8_t reg_low, int16_t &out) {
@@ -116,6 +116,10 @@ bool read_mag(int16_t &x, int16_t &y, int16_t &z) {
     return read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_X_L_M, x) &&
            read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_Y_L_M, y) &&
            read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_Z_L_M, z);
+}
+
+bool read_temperature(int16_t &temp) {
+    return read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_TEMP_L_XM, temp);   
 }
 
 } // namespace lsm9ds0_device
