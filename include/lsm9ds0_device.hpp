@@ -27,6 +27,18 @@ bool read_temperature(int16_t &temp);
 // Formula: T(°C) = raw/8 + 25
 float raw_to_celsius(int16_t raw_temp);
 
+// Convert raw gyroscope values to degrees per second (dps)
+// Assumes ±245 dps full scale (sensitivity: 8.75 mdps/LSB)
+float raw_to_dps(int16_t raw_gyro);
+
+// Convert raw accelerometer values to g (gravitational acceleration)
+// Assumes ±2g full scale (sensitivity: 0.061 mg/LSB)
+float raw_to_g(int16_t raw_accel);
+
+// Convert raw magnetometer values to gauss
+// Assumes ±2 gauss full scale (sensitivity: 0.08 mgauss/LSB)
+float raw_to_gauss(int16_t raw_mag);
+
 bool verify_device_ids();
 
 } // namespace lsm9ds0_device
