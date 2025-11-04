@@ -28,6 +28,9 @@ target_include_directories(${PROJECT_NAME}
 enable_testing()
 add_subdirectory(tests)
 
+# Add examples
+add_subdirectory(examples)
+
 # Installation rules
 install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin
