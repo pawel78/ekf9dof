@@ -24,9 +24,10 @@ inline void configure_accelerometer(void (*i2c_write)(uint8_t, uint8_t, uint8_t)
 }
 
 // Configure magnetometer (continuous conversion mode, 50 Hz ODR, ±2 gauss)
+// Note: CTRL_REG5_XM also contains TEMP_EN bit (bit 7) for temperature sensor, leave that disabled here.
 inline void configure_magnetometer(void (*i2c_write)(uint8_t, uint8_t, uint8_t)) {
     // CTRL_REG5_XM: mag resolution=high, ODR=50Hz
-    i2c_write(lsm9ds0::XM_ADDR, lsm9ds0::CTRL_REG5_XM, 0b11110000);
+    i2c_write(lsm9ds0::XM_ADDR, lsm9ds0::CTRL_REG5_XM, 0b01110000);
     // CTRL_REG6_XM: ±2 gauss full scale
     i2c_write(lsm9ds0::XM_ADDR, lsm9ds0::CTRL_REG6_XM, 0b00000000);
     // CTRL_REG7_XM: continuous conversion mode
@@ -34,9 +35,11 @@ inline void configure_magnetometer(void (*i2c_write)(uint8_t, uint8_t, uint8_t))
 }
 
 // Configure temperature sensor (enabled)
+// Note: TEMP_EN is bit 7 of CTRL_REG5_XM, which also controls magnetometer settings.
+// This should be called BEFORE or integrated WITH configure_magnetometer to avoid overwriting.
 inline void configure_temperature_sensor(void (*i2c_write)(uint8_t, uint8_t, uint8_t)) {
-    // CTRL_REG0_XM: enable temperature sensor
-    i2c_write(lsm9ds0::XM_ADDR, lsm9ds0::CTRL_REG5_XM, 0b00000001);
+    // CTRL_REG5_XM: enable temperature sensor
+    i2c_write(lsm9ds0::XM_ADDR, lsm9ds0::CTRL_REG5_XM, 0b01110000 | 0b10000000);
 }
 
-} // namespace lsm9ds0_config_example
+} // namespace lsm9ds0_config

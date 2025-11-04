@@ -123,7 +123,30 @@ bool read_mag(int16_t &x, int16_t &y, int16_t &z) {
 }
 
 bool read_temperature(int16_t &temp) {
-    return read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_TEMP_L_XM, temp);   
+    try {
+        // Read low and high temperature registers (little-endian)
+        uint8_t lo = I2CDevice::singleton().read_reg(lsm9ds0::XM_ADDR, lsm9ds0::OUT_TEMP_L_XM);
+        uint8_t hi = I2CDevice::singleton().read_reg(lsm9ds0::XM_ADDR, lsm9ds0::OUT_TEMP_H_XM);
+
+        // Temperature is a 12-bit, two's-complement, right-justified value stored in
+        // OUT_TEMP_L_XM (low) and OUT_TEMP_H_XM (high). Combine, mask to 12 bits and
+        // sign-extend to a 16-bit signed integer.
+        uint16_t raw = static_cast<uint16_t>(lo) | (static_cast<uint16_t>(hi) << 8);
+        raw &= 0x0FFF; // keep only lower 12 bits
+
+        int16_t signed12;
+        if (raw & 0x0800) {
+            // negative: set upper 4 bits to 1
+            signed12 = static_cast<int16_t>(raw | 0xF000);
+        } else {
+            signed12 = static_cast<int16_t>(raw);
+        }
+
+        temp = signed12;
+        return true;
+    } catch (...) {
+        return false;
+    }
 }
 
 } // namespace lsm9ds0_device
