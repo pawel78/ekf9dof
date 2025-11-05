@@ -17,10 +17,13 @@
 #include <cmath>
 #include <thread>
 #include <chrono>
+#include <limits>
 #include "lsm9ds0_device.hpp"
 
 // Configuration
 constexpr int SAMPLES_PER_ORIENTATION = 100;
+// Note: Sample rate should be lower than or equal to the IMU's configured rate
+// The IMU is configured to 380 Hz in lsm9ds0_config.hpp, so 100 Hz is safe
 constexpr int SAMPLE_RATE_HZ = 100;
 constexpr double GRAVITY = 9.80665; // m/s^2
 constexpr const char* CONFIG_FILE = "configs/config.yaml";
@@ -90,7 +93,7 @@ AccelData collect_orientation_data(const std::string& orientation_name,
     std::cout << "Orientation: " << orientation_name << "\n";
     std::cout << instruction << "\n";
     std::cout << "Press ENTER when ready...";
-    std::cin.ignore();
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     
     std::cout << "Stabilizing (2 seconds)...\n";
     std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -203,7 +206,7 @@ int main() {
         
         std::cout << "IMU configured successfully.\n";
         std::cout << "Press ENTER to start calibration...";
-        std::cin.get();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
         
         // Collect data for all 6 orientations
         std::vector<std::pair<AccelData, AccelData>> measurements;
