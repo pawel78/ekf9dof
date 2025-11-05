@@ -137,13 +137,13 @@ public:
         double sy = std::sin(yaw * 0.5);
         
         // 321 rotation sequence (yaw-pitch-roll)
-        // Standard ZYX Euler-to-quaternion conversion
+        // Derived from q_roll * q_pitch * q_yaw
         Quaternion q;
-        q.q_(0) = sr * cp * cy - cr * sp * sy;  // x
-        q.q_(1) = cr * sp * cy + sr * cp * sy;  // y
-        q.q_(2) = cr * cp * sy - sr * sp * cy;  // z
-        q.q_(3) = cr * cp * cy + sr * sp * sy;  // w
-
+        q.q_(0) = cr * sp * sy + sr * cp * cy;  // x
+        q.q_(1) = cr * sp * cy - sr * cp * sy;  // y
+        q.q_(2) = cr * cp * sy + sr * sp * cy;  // z
+        q.q_(3) = cr * cp * cy - sr * sp * sy;  // w
+        
         q.normalize();
         return q;
     }
