@@ -19,3 +19,14 @@ target_compile_features(test_mag_calibration PRIVATE cxx_std_17)
 
 # Add test
 add_test(NAME MagCalibrationTest COMMAND test_mag_calibration)
+
+# Test executable for config loader
+add_executable(test_config_loader 
+    test_config_loader.cpp
+    ${CMAKE_SOURCE_DIR}/src/config_loader.cpp
+)
+target_include_directories(test_config_loader PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_compile_features(test_config_loader PRIVATE cxx_std_17)
+
+# Add test
+add_test(NAME ConfigLoaderTest COMMAND test_config_loader)
