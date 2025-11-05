@@ -5,6 +5,8 @@
 /cmake-build-*/
 /_codeql_build_dir/
 _codeql_detected_source_root
+/install/
+/log/
 
 # CMake
 CMakeCache.txt
@@ -21,7 +23,18 @@ logs/
 *.png
 *.pdf
 
+# ROS 2
+*.bag
+*.db3
+*.mcap
 
 # Python cache
 __pycache__/
 *.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
