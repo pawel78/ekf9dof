@@ -178,9 +178,11 @@ public:
         }
         
         // Roll (φ) from R(1,2) = 2*(qy*qz - qw*qx) and R(2,2) = 1 - 2*(qx*qx + qy*qy)
+        // Note: R(1,2) = -sin(roll)*cos(pitch), so -R(1,2) cancels the negative sign
         euler(0) = std::atan2(-(2.0 * (y * z - w * x)), 1.0 - 2.0 * (x * x + y * y));
         
         // Yaw (ψ) from R(0,1) = 2*(qx*qy - qw*qz) and R(0,0) = 1 - 2*(qy*qy + qz*qz)
+        // Note: R(0,1) = -cos(pitch)*sin(yaw), so -R(0,1) cancels the negative sign
         euler(2) = std::atan2(-(2.0 * (x * y - w * z)), 1.0 - 2.0 * (y * y + z * z));
         
         return euler;

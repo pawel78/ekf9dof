@@ -40,11 +40,12 @@ void test_quaternion_construction() {
     std::cout << "Testing quaternion construction..." << std::endl;
     
     // Test from components
-    Quaternion q1(0.0, 0.0, 0.707107, 0.707107);  // 90° rotation about Z
+    const double sqrt2_2 = std::sqrt(2.0) / 2.0;  // sin(45°) = cos(45°)
+    Quaternion q1(0.0, 0.0, sqrt2_2, sqrt2_2);  // 90° rotation about Z
     assert(double_equal(q1.norm(), 1.0));
     
     // Test from Eigen vector
-    Eigen::Vector4d vec(0.0, 0.0, 0.707107, 0.707107);
+    Eigen::Vector4d vec(0.0, 0.0, sqrt2_2, sqrt2_2);
     Quaternion q2(vec);
     assert(double_equal(q2.norm(), 1.0));
     
@@ -60,28 +61,29 @@ void test_euler_to_quaternion_simple() {
     assert(quaternion_equal(q_zero, Quaternion()));
     
     // Test 90° roll (about X-axis)
+    const double sqrt2_2 = std::sqrt(2.0) / 2.0;  // sin(45°) = cos(45°)
     Eigen::Vector3d euler_roll(M_PI / 2.0, 0.0, 0.0);
     Quaternion q_roll = Quaternion::from_euler(euler_roll);
-    assert(double_equal(q_roll.x(), 0.707107, 1e-5));
+    assert(double_equal(q_roll.x(), sqrt2_2, 1e-5));
     assert(double_equal(q_roll.y(), 0.0, 1e-5));
     assert(double_equal(q_roll.z(), 0.0, 1e-5));
-    assert(double_equal(q_roll.w(), 0.707107, 1e-5));
+    assert(double_equal(q_roll.w(), sqrt2_2, 1e-5));
     
     // Test 90° pitch (about Y-axis)
     Eigen::Vector3d euler_pitch(0.0, M_PI / 2.0, 0.0);
     Quaternion q_pitch = Quaternion::from_euler(euler_pitch);
     assert(double_equal(q_pitch.x(), 0.0, 1e-5));
-    assert(double_equal(q_pitch.y(), 0.707107, 1e-5));
+    assert(double_equal(q_pitch.y(), sqrt2_2, 1e-5));
     assert(double_equal(q_pitch.z(), 0.0, 1e-5));
-    assert(double_equal(q_pitch.w(), 0.707107, 1e-5));
+    assert(double_equal(q_pitch.w(), sqrt2_2, 1e-5));
     
     // Test 90° yaw (about Z-axis)
     Eigen::Vector3d euler_yaw(0.0, 0.0, M_PI / 2.0);
     Quaternion q_yaw = Quaternion::from_euler(euler_yaw);
     assert(double_equal(q_yaw.x(), 0.0, 1e-5));
     assert(double_equal(q_yaw.y(), 0.0, 1e-5));
-    assert(double_equal(q_yaw.z(), 0.707107, 1e-5));
-    assert(double_equal(q_yaw.w(), 0.707107, 1e-5));
+    assert(double_equal(q_yaw.z(), sqrt2_2, 1e-5));
+    assert(double_equal(q_yaw.w(), sqrt2_2, 1e-5));
     
     std::cout << "  ✓ Simple Euler to quaternion test passed" << std::endl;
 }
@@ -193,7 +195,9 @@ void test_rotation_matrix_conversion() {
     
     // Test round-trip conversion
     Quaternion q2 = Quaternion::from_rotation_matrix(R);
-    assert(quaternion_equal(q, q2, 1e-5) || quaternion_equal(q, Quaternion(-q2.x(), -q2.y(), -q2.z(), -q2.w()), 1e-5));
+    // Quaternions q and -q represent the same rotation
+    Quaternion q2_neg(-q2.x(), -q2.y(), -q2.z(), -q2.w());
+    assert(quaternion_equal(q, q2, 1e-5) || quaternion_equal(q, q2_neg, 1e-5));
     
     std::cout << "  ✓ Rotation matrix conversion test passed" << std::endl;
 }
