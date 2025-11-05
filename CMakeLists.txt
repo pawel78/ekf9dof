@@ -9,17 +9,26 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Enable optimization flags for Release builds
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
-# Collect all source files
-file(GLOB_RECURSE SOURCES 
-    "src/*.cpp"
-    "include/ekf9dof/*.cpp"
+# Collect common source files (exclude main executables)
+set(COMMON_SOURCES
+    "src/lsm9ds0.cpp"
+    "src/attitude_ekf.cpp"
+    "include/ekf9dof/attitude_ekf.cpp"
 )
 
 # Create the main executable
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} ${COMMON_SOURCES} "src/main.cpp")
+
+# Create the accelerometer calibration utility
+add_executable(calibrate_accel ${COMMON_SOURCES} "src/calibrate_accel.cpp")
 
 # Add include directories
 target_include_directories(${PROJECT_NAME} 
+    PUBLIC 
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_include_directories(calibrate_accel
     PUBLIC 
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
@@ -32,7 +41,7 @@ add_subdirectory(tests)
 add_subdirectory(examples)
 
 # Installation rules
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME} calibrate_accel
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
