@@ -12,10 +12,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 # Common library source files (excluding main executables)
 set(LIB_SOURCES
     src/lsm9ds0.cpp
-    src/attitude_ekf.cpp
     src/mag_calibration.cpp
     src/config_loader.cpp
-    include/ekf9dof/attitude_ekf.cpp
 )
 
 # Create the main executable

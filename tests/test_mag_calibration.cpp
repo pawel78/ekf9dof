@@ -146,6 +146,37 @@ void test_empty_samples() {
     std::cout << "  ✓ Empty samples test passed" << std::endl;
 }
 
+void test_zero_range_samples() {
+    std::cout << "Testing with zero range samples (same value)..." << std::endl;
+    
+    // Create samples with no variation on one axis
+    std::vector<std::array<float, 3>> samples;
+    for (int i = 0; i < 10; ++i) {
+        samples.push_back({1.0f, 2.0f, 3.0f});  // All identical
+    }
+    
+    std::array<float, 3> hard_iron_offset;
+    mag_calibration::calculate_hard_iron_offset(samples, hard_iron_offset);
+    
+    // Offset should be the value itself
+    assert(float_equal(hard_iron_offset[0], 1.0f));
+    assert(float_equal(hard_iron_offset[1], 2.0f));
+    assert(float_equal(hard_iron_offset[2], 3.0f));
+    
+    std::array<float, 9> soft_iron_matrix;
+    mag_calibration::calculate_soft_iron_matrix(samples, hard_iron_offset, soft_iron_matrix);
+    
+    // Should not crash or produce NaN/Inf values
+    assert(!std::isnan(soft_iron_matrix[0]));
+    assert(!std::isnan(soft_iron_matrix[4]));
+    assert(!std::isnan(soft_iron_matrix[8]));
+    assert(!std::isinf(soft_iron_matrix[0]));
+    assert(!std::isinf(soft_iron_matrix[4]));
+    assert(!std::isinf(soft_iron_matrix[8]));
+    
+    std::cout << "  ✓ Zero range samples test passed" << std::endl;
+}
+
 int main() {
     std::cout << "Running magnetometer calibration tests..." << std::endl;
     std::cout << "===========================================" << std::endl;
@@ -156,6 +187,7 @@ int main() {
         test_calibration_application();
         test_identity_calibration();
         test_empty_samples();
+        test_zero_range_samples();
         
         std::cout << "===========================================" << std::endl;
         std::cout << "All magnetometer calibration tests passed! ✓" << std::endl;

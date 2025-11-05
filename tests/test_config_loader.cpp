@@ -52,8 +52,8 @@ void test_load_default_config() {
 void test_load_custom_config() {
     std::cout << "Testing loading from custom config file..." << std::endl;
     
-    // Create a temporary config file
-    const char* temp_config = "/tmp/test_config.yaml";
+    // Create a temporary config file (use /tmp on Unix-like systems, current dir on Windows)
+    const char* temp_config = "test_config_temp.yaml";
     std::ofstream file(temp_config);
     file << "calibration:\n";
     file << "  gyro_bias: [0.0, 0.0, 0.0]\n";

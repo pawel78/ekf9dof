@@ -95,16 +95,18 @@ void calculate_soft_iron_matrix(const std::vector<std::array<float, 3>>& samples
         }
     }
     
-    // Calculate ranges
+    // Calculate ranges with minimum threshold to avoid division by zero
+    const float MIN_RANGE = 1e-6f;  // Minimum range threshold
     std::array<float, 3> ranges;
     for (size_t i = 0; i < 3; ++i) {
-        ranges[i] = max_vals[i] - min_vals[i];
+        ranges[i] = std::max(max_vals[i] - min_vals[i], MIN_RANGE);
     }
     
     // Use average range as reference
     float avg_range = (ranges[0] + ranges[1] + ranges[2]) / 3.0f;
     
     // Create diagonal scaling matrix
+    // Each scale factor is clamped to avoid extreme values
     soft_iron_matrix = {
         avg_range / ranges[0], 0.0f, 0.0f,
         0.0f, avg_range / ranges[1], 0.0f,
