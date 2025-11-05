@@ -9,6 +9,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Enable optimization flags for Release builds
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
+# Find Eigen3 library
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
 # Collect all source files
 file(GLOB_RECURSE SOURCES 
     "src/*.cpp"
@@ -23,6 +26,9 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC 
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
+# Link Eigen3
+target_link_libraries(${PROJECT_NAME} Eigen3::Eigen)
 
 # Enable testing
 enable_testing()
