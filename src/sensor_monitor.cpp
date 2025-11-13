@@ -29,7 +29,7 @@ private:
                                         0.0f, 1.0f, 0.0f,
                                         0.0f, 0.0f, 1.0f};
     bool calibration_loaded_ = false;
-    std::ofstream calibration_log_;
+    std::ofstream sensor_data_log_;
     
 public:
     bool initialize() {
@@ -71,9 +71,9 @@ public:
         char cal_filename[64];
         std::strftime(cal_filename, sizeof(cal_filename), "mag_cal_data_%Y%m%d_%H%M%S.csv", &tm_buf);
         
-        calibration_log_.open(cal_filename);
-        if (calibration_log_.is_open()) {
-            calibration_log_ << "timestamp_ms,mx_raw_gauss,my_raw_gauss,mz_raw_gauss,mx_cal_gauss,my_cal_gauss,mz_cal_gauss\n";
+        sensor_data_log_.open(cal_filename);
+        if (sensor_data_log_.is_open()) {
+            sensor_data_log_ << "timestamp_ms,mx_raw_gauss,my_raw_gauss,mz_raw_gauss,mx_cal_gauss,my_cal_gauss,mz_cal_gauss\n";
             std::cout << "✓ Calibration data logging to: " << cal_filename << "\n";
         }
         
@@ -170,15 +170,16 @@ public:
                       << std::setw(35) << ("(" + std::to_string(mx_cal) + ", " + std::to_string(my_cal) + ", " + std::to_string(mz_cal) + ")")
                       << std::setw(10) << temp_c << "\n";
             
-            // Log calibration data for offline analysis
-            if (calibration_log_.is_open()) {
-                calibration_log_ << elapsed.count() << ","
-                                << mx_gauss << "," << my_gauss << "," << mz_gauss << ","
-                                << mx_cal << "," << my_cal << "," << mz_cal << "\n";
+            // Log sensor data for offline analysis
+            if (sensor_data_log_.is_open()) {
+                sensor_data_log_ << elapsed.count() << ","
+                                << ax_g << "," << ay_g << "," << az_g << ","
+                                << gx_dps << "," << gy_dps << "," << gz_dps << ","
+                                << mx_gauss << "," << my_gauss << "," << mz_gauss << "," << "\n";
                 
                 // Flush every 50 samples
                 if (++sample_count % 50 == 0) {
-                    calibration_log_.flush();
+                    sensor_data_log_.flush();
                 }
             }
             
@@ -225,8 +226,8 @@ public:
     }
     
     ~SensorMonitor() {
-        if (calibration_log_.is_open()) {
-            calibration_log_.close();
+        if (sensor_data_log_.is_open()) {
+            sensor_data_log_.close();
             std::cout << "\n✓ Calibration data log closed\n";
         }
     }
