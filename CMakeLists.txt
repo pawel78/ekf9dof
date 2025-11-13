@@ -39,6 +39,17 @@ target_include_directories(calibrate_mag
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+# Create the sensor monitor executable
+add_executable(sensor_monitor
+    ${LIB_SOURCES}
+    src/sensor_monitor.cpp
+)
+
+target_include_directories(sensor_monitor
+    PUBLIC 
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
 # Enable testing
 enable_testing()
 add_subdirectory(tests)
@@ -47,7 +58,7 @@ add_subdirectory(tests)
 add_subdirectory(examples)
 
 # Installation rules
-install(TARGETS ${PROJECT_NAME} calibrate_mag
+install(TARGETS ${PROJECT_NAME} calibrate_mag sensor_monitor
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
