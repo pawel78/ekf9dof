@@ -88,7 +88,7 @@ public:
         std::cout << std::setw(12) << "Time"
                   << std::setw(30) << "Accelerometer (g)"
                   << std::setw(30) << "Gyroscope (dps)"
-                  << std::setw(35) << "Magnetometer Raw (gauss)"
+                  << std::setw(35) << "Magnetometer Raw (gauss)";
         std::cout << std::string(120, '-') << "\n";
     }
     
