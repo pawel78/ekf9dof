@@ -70,6 +70,7 @@ ekf9dof/
 
 ## Documentation
 
+- [Cross-Platform Build Support](docs/CROSS_PLATFORM_BUILD.md) - Building on macOS and other platforms
 - [Magnetometer Calibration Guide](docs/MAGNETOMETER_CALIBRATION.md) - Comprehensive calibration documentation
 - [Quick Start Guide](CALIBRATION_QUICK_START.md) - 5-minute calibration setup
 - [Scripts README](scripts/README.md) - Data visualization tools
