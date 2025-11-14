@@ -89,8 +89,6 @@ public:
                   << std::setw(30) << "Accelerometer (g)"
                   << std::setw(30) << "Gyroscope (dps)"
                   << std::setw(35) << "Magnetometer Raw (gauss)"
-                  << std::setw(35) << "Magnetometer Cal (gauss)"
-                  << std::setw(10) << "Temp (°C)\n";
         std::cout << std::string(120, '-') << "\n";
     }
     
