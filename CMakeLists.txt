@@ -54,8 +54,10 @@ target_include_directories(sensor_monitor
 enable_testing()
 add_subdirectory(tests)
 
-# Add examples
-add_subdirectory(examples)
+# Add examples (if directory exists)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples)
+    add_subdirectory(examples)
+endif()
 
 # Installation rules
 install(TARGETS ${PROJECT_NAME} calibrate_mag sensor_monitor
