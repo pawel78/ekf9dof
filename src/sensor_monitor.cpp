@@ -88,7 +88,7 @@ public:
         std::cout << std::setw(12) << "Time"
                   << std::setw(30) << "Accelerometer (g)"
                   << std::setw(30) << "Gyroscope (dps)"
-                  << std::setw(35) << "Magnetometer Raw (gauss)";
+                  << std::setw(35) << "Magnetometer Raw (gauss)" << "\n";
         std::cout << std::string(120, '-') << "\n";
     }
     
@@ -162,15 +162,18 @@ public:
             // Display data
             std::cout << std::fixed << std::setprecision(3);
             std::cout << std::setw(12) << (elapsed.count() / 1000.0)
+                        << "("
                         << std::setw(7) << std::fixed << std::setprecision(3) << ax_g << ", "
                         << std::setw(7) << ay_g << ", "
-                        << std::setw(7) << az_g
+                        << std::setw(7) << az_g << ")   "
+                        << "("
                         << std::setw(7) << std::fixed << std::setprecision(3) << gx_dps << ", "
                         << std::setw(7) << gy_dps << ", "
-                        << std::setw(7) << gz_dps
+                        << std::setw(7) << gz_dps << ")   "
+                        << "("
                         << std::setw(9) << std::fixed << std::setprecision(4) << mx_gauss << ", "
                         << std::setw(9) << my_gauss << ", "
-                        << std::setw(9) << mz_gauss
+                        << std::setw(9) << mz_gauss << ")"
                         << "\n";
             
             // Log sensor data for offline analysis
