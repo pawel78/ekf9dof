@@ -171,7 +171,7 @@ public:
                 sensor_data_log_ << elapsed.count() << ","
                                 << ax_g << "," << ay_g << "," << az_g << ","
                                 << gx_dps << "," << gy_dps << "," << gz_dps << ","
-                                << mx_gauss << "," << my_gauss << "," << mz_gauss << "," << "\n";
+                                << mx_gauss << "," << my_gauss << "," << mz_gauss << "\n";
                 
                 // Flush every 50 samples
                 if (++sample_count % 50 == 0) {
