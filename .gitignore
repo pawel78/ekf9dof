@@ -16,6 +16,7 @@ compile_commands.json
 
 # Logs & outputs
 logs/
+data/logs/
 *.csv
 *.bin
 *.png

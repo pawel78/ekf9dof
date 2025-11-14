@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cassert>
 #include <cmath>
-#include "ekf9dof/sensor.hpp"
+#include "imu/processing/sensor.hpp"
 
 using namespace ekf9dof;
 

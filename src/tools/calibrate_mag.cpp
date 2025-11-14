@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
-#include "lsm9ds0_device.hpp"
-#include "mag_calibration.hpp"
+#include "imu/drivers/lsm9ds0_device.hpp"
+#include "imu/processing/mag_calibration.hpp"
 
 int main(int argc, char* argv[]) {
     // Default config path
