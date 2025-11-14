@@ -68,13 +68,13 @@ public:
         std::tm tm_buf;
         localtime_r(&now_time_t, &tm_buf);
         
-        char cal_filename[64];
-        std::strftime(cal_filename, sizeof(cal_filename), "mag_cal_data_%Y%m%d_%H%M%S.csv", &tm_buf);
+        char sensor_data_filename[64];
+        std::strftime(sensor_data_filename, sizeof(sensor_data_filename), "sensor_data_%Y%m%d_%H%M%S.csv", &tm_buf);
         
-        sensor_data_log_.open(cal_filename);
+        sensor_data_log_.open(sensor_data_filename);
         if (sensor_data_log_.is_open()) {
-            sensor_data_log_ << "timestamp_ms,mx_raw_gauss,my_raw_gauss,mz_raw_gauss,mx_cal_gauss,my_cal_gauss,mz_cal_gauss\n";
-            std::cout << "✓ Calibration data logging to: " << cal_filename << "\n";
+            sensor_data_log_ << "timestamp_ms,ax_g,ay_g,az_g,gx_dps,gy_dps,gz_dps,mx_raw_gauss,my_raw_gauss,mz_raw_gauss\n";
+            std::cout << "✓ Sensor data logging to: " << sensor_data_filename << "\n";
         }
         
         return true;
@@ -166,9 +166,7 @@ public:
             std::cout << std::setw(12) << (elapsed.count() / 1000.0)
                       << std::setw(30) << ("(" + std::to_string(ax_g) + ", " + std::to_string(ay_g) + ", " + std::to_string(az_g) + ")")
                       << std::setw(30) << ("(" + std::to_string(gx_dps) + ", " + std::to_string(gy_dps) + ", " + std::to_string(gz_dps) + ")")
-                      << std::setw(35) << ("(" + std::to_string(mx_gauss) + ", " + std::to_string(my_gauss) + ", " + std::to_string(mz_gauss) + ")")
-                      << std::setw(35) << ("(" + std::to_string(mx_cal) + ", " + std::to_string(my_cal) + ", " + std::to_string(mz_cal) + ")")
-                      << std::setw(10) << temp_c << "\n";
+                      << std::setw(35) << ("(" + std::to_string(mx_gauss) + ", " + std::to_string(my_gauss) + ", " + std::to_string(mz_gauss) + ")");
             
             // Log sensor data for offline analysis
             if (sensor_data_log_.is_open()) {
