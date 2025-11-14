@@ -6,6 +6,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Platform detection
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(STATUS "Building for Linux - I2C hardware access enabled")
+elseif(APPLE)
+    message(WARNING "Building for macOS - I2C hardware access NOT available. Build for compile-time error checking only.")
+else()
+    message(WARNING "Building for ${CMAKE_SYSTEM_NAME} - I2C hardware access NOT available. Build for compile-time error checking only.")
+endif()
+
 # Enable optimization flags for Release builds
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 

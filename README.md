@@ -21,6 +21,8 @@ cmake ..
 make -j$(nproc)
 ```
 
+**Note on Cross-Platform Support:** While this project is designed for embedded Linux systems with I2C hardware (Jetson Nano, Raspberry Pi, etc.), the code can be compiled on macOS for compile-time error checking and development. On non-Linux platforms, I2C hardware access will not be available, but building will help catch syntax and compilation errors before deploying to target hardware.
+
 ### Run Sensor Data Collection
 
 ```bash
