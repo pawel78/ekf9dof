@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <system_error>
 #include <cstring>
+#include <array>
 #include "lsm9ds0_config.hpp"
 #include "lsm9ds0.hpp"
 #include "lsm9ds0_device.hpp"
@@ -187,6 +188,59 @@ float raw_to_g(int16_t raw_accel) {
 // Formula: gauss = raw * 0.08 / 1000 = raw * 0.00008
 float raw_to_gauss(int16_t raw_mag) {
     return raw_mag * 0.00008f;
+}
+
+// Magnetometer calibration storage
+static std::array<float, 3> mag_bias = {0.0f, 0.0f, 0.0f};
+static std::array<float, 9> mag_matrix = {1.0f, 0.0f, 0.0f,
+                                          0.0f, 1.0f, 0.0f,
+                                          0.0f, 0.0f, 1.0f};
+static bool mag_calibration_loaded = false;
+
+// Load magnetometer calibration parameters
+void load_mag_calibration(const std::array<float, 3>& bias, const std::array<float, 9>& matrix) {
+    mag_bias = bias;
+    mag_matrix = matrix;
+    mag_calibration_loaded = true;
+}
+
+// Read magnetometer with calibration applied
+bool read_mag_calibrated(float &x, float &y, float &z) {
+    int16_t mx, my, mz;
+    if (!read_mag(mx, my, mz)) {
+        return false;
+    }
+    
+    // Convert to gauss
+    float raw_x = raw_to_gauss(mx);
+    float raw_y = raw_to_gauss(my);
+    float raw_z = raw_to_gauss(mz);
+    
+    if (!mag_calibration_loaded) {
+        // No calibration loaded, return raw values
+        x = raw_x;
+        y = raw_y;
+        z = raw_z;
+        return true;
+    }
+    
+    // Apply hard iron offset
+    float temp_x = raw_x - mag_bias[0];
+    float temp_y = raw_y - mag_bias[1];
+    float temp_z = raw_z - mag_bias[2];
+    
+    // Apply soft iron correction matrix (3x3 matrix multiplication)
+    x = mag_matrix[0] * temp_x + mag_matrix[1] * temp_y + mag_matrix[2] * temp_z;
+    y = mag_matrix[3] * temp_x + mag_matrix[4] * temp_y + mag_matrix[5] * temp_z;
+    z = mag_matrix[6] * temp_x + mag_matrix[7] * temp_y + mag_matrix[8] * temp_z;
+    
+    return true;
+}
+
+// Get current calibration parameters
+void get_mag_calibration(std::array<float, 3>& bias, std::array<float, 9>& matrix) {
+    bias = mag_bias;
+    matrix = mag_matrix;
 }
 
 } // namespace lsm9ds0_device

@@ -9,17 +9,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Enable optimization flags for Release builds
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
-# Find Eigen3 library
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-
-# Collect all source files
-file(GLOB_RECURSE SOURCES 
-    "src/*.cpp"
-    "include/ekf9dof/*.cpp"
+# Common library source files (excluding main executables)
+set(LIB_SOURCES
+    src/lsm9ds0.cpp
+    src/mag_calibration.cpp
+    src/config_loader.cpp
 )
 
 # Create the main executable
-add_executable(${PROJECT_NAME} ${SOURCES})
+add_executable(${PROJECT_NAME} 
+    ${LIB_SOURCES}
+    src/main.cpp
+)
 
 # Add include directories
 target_include_directories(${PROJECT_NAME} 
@@ -27,8 +28,27 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# Link Eigen3
-target_link_libraries(${PROJECT_NAME} Eigen3::Eigen)
+# Create the calibration tool executable
+add_executable(calibrate_mag
+    ${LIB_SOURCES}
+    src/calibrate_mag.cpp
+)
+
+target_include_directories(calibrate_mag
+    PUBLIC 
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+# Create the sensor monitor executable
+add_executable(sensor_monitor
+    ${LIB_SOURCES}
+    src/sensor_monitor.cpp
+)
+
+target_include_directories(sensor_monitor
+    PUBLIC 
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
 # Enable testing
 enable_testing()
@@ -38,7 +58,7 @@ add_subdirectory(tests)
 add_subdirectory(examples)
 
 # Installation rules
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME} calibrate_mag sensor_monitor
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib

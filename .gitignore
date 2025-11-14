@@ -25,3 +25,7 @@ logs/
 # Python cache
 __pycache__/
 *.pyc
+
+# virtual environment (venv) and jupyter notebook settings
+.ipynb_checkpoints/
+.vscode/

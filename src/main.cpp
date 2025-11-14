@@ -6,6 +6,7 @@
 #include <ctime>
 #include <limits>
 #include "lsm9ds0_device.hpp"
+#include "config_loader.hpp"
 
 // Poll sensor at 200 Hz and log data
 void run_sensor_polling() {
@@ -46,7 +47,11 @@ void run_sensor_polling() {
 
         bool aok = lsm9ds0_device::read_accel(ax, ay, az);
         bool gok = lsm9ds0_device::read_gyro(gx, gy, gz);
-        bool mok = lsm9ds0_device::read_mag(mx, my, mz);
+        
+        // Read magnetometer with calibration applied
+        float mag_x, mag_y, mag_z;
+        bool mok = lsm9ds0_device::read_mag_calibrated(mag_x, mag_y, mag_z);
+        
         bool tok = lsm9ds0_device::read_temperature(temp);
 
         // Calculate timestamp in milliseconds since start
@@ -62,9 +67,9 @@ void run_sensor_polling() {
                  << (gok ? lsm9ds0_device::raw_to_dps(gx) : nan_val) << ","
                  << (gok ? lsm9ds0_device::raw_to_dps(gy) : nan_val) << ","
                  << (gok ? lsm9ds0_device::raw_to_dps(gz) : nan_val) << ","
-                 << (mok ? lsm9ds0_device::raw_to_gauss(mx) : nan_val) << ","
-                 << (mok ? lsm9ds0_device::raw_to_gauss(my) : nan_val) << ","
-                 << (mok ? lsm9ds0_device::raw_to_gauss(mz) : nan_val) << ","
+                 << (mok ? mag_x : nan_val) << ","
+                 << (mok ? mag_y : nan_val) << ","
+                 << (mok ? mag_z : nan_val) << ","
                  << (tok ? lsm9ds0_device::raw_to_celsius(temp) : nan_val) << "\n";
         
         // Flush periodically to ensure data is written (use counter instead of modulo)
@@ -93,6 +98,16 @@ int main() {
 
         // Configure temperature sensor
         lsm9ds0_device::configure_temperature_sensor();
+
+        // Load magnetometer calibration from config
+        std::array<float, 3> mag_bias;
+        std::array<float, 9> mag_matrix;
+        if (config_loader::load_mag_calibration("configs/config.yaml", mag_bias, mag_matrix)) {
+            lsm9ds0_device::load_mag_calibration(mag_bias, mag_matrix);
+            std::cout << "✓ Magnetometer calibration loaded from config\n";
+        } else {
+            std::cout << "⚠ Warning: Could not load magnetometer calibration, using defaults\n";
+        }
 
         run_sensor_polling();
 
