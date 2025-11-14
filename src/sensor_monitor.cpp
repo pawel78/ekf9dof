@@ -165,7 +165,7 @@ public:
                         << std::setw(7) << std::fixed << std::setprecision(3) << ax_g << ", "
                         << std::setw(7) << ay_g << ", "
                         << std::setw(7) << az_g
-                        << std::setw(7) << std::fixed << std::setprecision(3:w) << gx_dps << ", "
+                        << std::setw(7) << std::fixed << std::setprecision(3) << gx_dps << ", "
                         << std::setw(7) << gy_dps << ", "
                         << std::setw(7) << gz_dps
                         << std::setw(9) << std::fixed << std::setprecision(4) << mx_gauss << ", "
