@@ -21,6 +21,8 @@ cmake ..
 make -j$(nproc)
 ```
 
+**Note on Cross-Platform Support:** While this project is designed for embedded Linux systems with I2C hardware (Jetson Nano, Raspberry Pi, etc.), the code can be compiled on macOS for compile-time error checking and development. On non-Linux platforms, I2C hardware access will not be available, but building will help catch syntax and compilation errors before deploying to target hardware.
+
 ### Run Sensor Data Collection
 
 ```bash
@@ -68,6 +70,7 @@ ekf9dof/
 
 ## Documentation
 
+- [Cross-Platform Build Support](docs/CROSS_PLATFORM_BUILD.md) - Building on macOS and other platforms
 - [Magnetometer Calibration Guide](docs/MAGNETOMETER_CALIBRATION.md) - Comprehensive calibration documentation
 - [Quick Start Guide](CALIBRATION_QUICK_START.md) - 5-minute calibration setup
 - [Scripts README](scripts/README.md) - Data visualization tools

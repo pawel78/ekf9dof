@@ -6,6 +6,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Platform detection
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    message(STATUS "Building for Linux - I2C hardware access enabled")
+elseif(APPLE)
+    message(WARNING "Building for macOS - I2C hardware access NOT available. Build for compile-time error checking only.")
+else()
+    message(WARNING "Building for ${CMAKE_SYSTEM_NAME} - I2C hardware access NOT available. Build for compile-time error checking only.")
+endif()
+
 # Enable optimization flags for Release builds
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
@@ -54,8 +63,10 @@ target_include_directories(sensor_monitor
 enable_testing()
 add_subdirectory(tests)
 
-# Add examples
-add_subdirectory(examples)
+# Add examples (if directory exists)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples)
+    add_subdirectory(examples)
+endif()
 
 # Installation rules
 install(TARGETS ${PROJECT_NAME} calibrate_mag sensor_monitor

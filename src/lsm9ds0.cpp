@@ -1,9 +1,4 @@
 #include <cstdint>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <linux/i2c-dev.h>
-#include <linux/i2c.h>
 #include <stdexcept>
 #include <system_error>
 #include <cstring>
@@ -12,27 +7,52 @@
 #include "lsm9ds0.hpp"
 #include "lsm9ds0_device.hpp"
 
+// Platform detection
+#if defined(__linux__)
+    #define PLATFORM_LINUX 1
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <sys/ioctl.h>
+    #include <linux/i2c-dev.h>
+    #include <linux/i2c.h>
+#else
+    #define PLATFORM_LINUX 0
+    // Mock definitions for non-Linux platforms (e.g., macOS)
+    // These allow the code to compile for build verification but won't function
+    #warning "Building for non-Linux platform - I2C hardware access will not be available"
+#endif
+
 class I2CDevice {
 private:
+#if PLATFORM_LINUX
     int fd; // File descriptor for I2C device
+#endif
 
 public:
     explicit I2CDevice(const char* device = "/dev/i2c-7") {
+#if PLATFORM_LINUX
         // Open I2C device
         fd = open(device, O_RDWR);
         if (fd < 0) {
             throw std::system_error(errno, std::system_category(), "Failed to open I2C device");
         }
+#else
+        (void)device; // Suppress unused parameter warning
+        throw std::runtime_error("I2C device access not supported on this platform");
+#endif
     }
 
     ~I2CDevice() {
+#if PLATFORM_LINUX
         if (fd >= 0) {
             close(fd);
         }
+#endif
     }
 
     // Implementation of i2c_write function
     void write(uint8_t dev_addr, uint8_t reg_addr, uint8_t value) {
+#if PLATFORM_LINUX
         // Set I2C device address
         if (ioctl(fd, I2C_SLAVE, dev_addr) < 0) {
             throw std::system_error(errno, std::system_category(), "Failed to set I2C slave address");
@@ -43,10 +63,15 @@ public:
         if (::write(fd, buffer, 2) != 2) {
             throw std::system_error(errno, std::system_category(), "Failed to write to I2C device");
         }
+#else
+        (void)dev_addr; (void)reg_addr; (void)value; // Suppress unused parameter warnings
+        throw std::runtime_error("I2C write not supported on this platform");
+#endif
     }
 
     // Read a single register (8-bit)
     uint8_t read_reg(uint8_t dev_addr, uint8_t reg_addr) {
+#if PLATFORM_LINUX
         if (ioctl(fd, I2C_SLAVE, dev_addr) < 0) {
             throw std::system_error(errno, std::system_category(), "Failed to set I2C slave address");
         }
@@ -60,6 +85,10 @@ public:
             throw std::system_error(errno, std::system_category(), "Failed to read register");
         }
         return val;
+#else
+        (void)dev_addr; (void)reg_addr; // Suppress unused parameter warnings
+        throw std::runtime_error("I2C read not supported on this platform");
+#endif
     }
 
     // Static wrapper that matches the function pointer signature
