@@ -162,9 +162,16 @@ public:
             // Display data
             std::cout << std::fixed << std::setprecision(3);
             std::cout << std::setw(12) << (elapsed.count() / 1000.0)
-                      << std::setw(30) << ("(" + std::to_string(ax_g) + ", " + std::to_string(ay_g) + ", " + std::to_string(az_g) + ")")
-                      << std::setw(30) << ("(" + std::to_string(gx_dps) + ", " + std::to_string(gy_dps) + ", " + std::to_string(gz_dps) + ")")
-                      << std::setw(35) << ("(" + std::to_string(mx_gauss) + ", " + std::to_string(my_gauss) + ", " + std::to_string(mz_gauss) + ")");
+                        << std::setw(7) << std::fixed << std::setprecision(3) << ax_g << ", "
+                        << std::setw(7) << ay_g << ", "
+                        << std::setw(7) << az_g
+                        << std::setw(7) << std::fixed << std::setprecision(3:w) << gx_dps << ", "
+                        << std::setw(7) << gy_dps << ", "
+                        << std::setw(7) << gz_dps
+                        << std::setw(9) << std::fixed << std::setprecision(4) << mx_gauss << ", "
+                        << std::setw(9) << my_gauss << ", "
+                        << std::setw(9) << mz_gauss
+                        << "\n";
             
             // Log sensor data for offline analysis
             if (sensor_data_log_.is_open()) {
