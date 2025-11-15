@@ -21,7 +21,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 # Common library source files (excluding main executables)
 set(LIB_SOURCES
     src/imu/drivers/lsm9ds0.cpp
-    src/imu/processing/mag_calibration.cpp
+    src/tools/mag_calibration.cpp
     src/common/config_loader.cpp
 )
 
