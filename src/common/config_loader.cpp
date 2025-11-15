@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include "config_loader.hpp"
+#include "common/config_loader.hpp"
 
 namespace config_loader {
 

@@ -3,9 +3,9 @@
 #include <system_error>
 #include <cstring>
 #include <array>
-#include "lsm9ds0_config.hpp"
-#include "lsm9ds0.hpp"
-#include "lsm9ds0_device.hpp"
+#include "imu/drivers/lsm9ds0_config.hpp"
+#include "imu/drivers/lsm9ds0.hpp"
+#include "imu/drivers/lsm9ds0_device.hpp"
 
 // Platform detection
 #if defined(__linux__)

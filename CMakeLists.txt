@@ -20,15 +20,15 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 # Common library source files (excluding main executables)
 set(LIB_SOURCES
-    src/lsm9ds0.cpp
-    src/mag_calibration.cpp
-    src/config_loader.cpp
+    src/imu/drivers/lsm9ds0.cpp
+    src/imu/processing/mag_calibration.cpp
+    src/common/config_loader.cpp
 )
 
 # Create the main executable
 add_executable(${PROJECT_NAME} 
     ${LIB_SOURCES}
-    src/main.cpp
+    src/tools/main.cpp
 )
 
 # Add include directories
@@ -40,7 +40,7 @@ target_include_directories(${PROJECT_NAME}
 # Create the calibration tool executable
 add_executable(calibrate_mag
     ${LIB_SOURCES}
-    src/calibrate_mag.cpp
+    src/tools/calibrate_mag.cpp
 )
 
 target_include_directories(calibrate_mag
@@ -51,7 +51,7 @@ target_include_directories(calibrate_mag
 # Create the sensor monitor executable
 add_executable(sensor_monitor
     ${LIB_SOURCES}
-    src/sensor_monitor.cpp
+    src/tools/sensor_monitor.cpp
 )
 
 target_include_directories(sensor_monitor

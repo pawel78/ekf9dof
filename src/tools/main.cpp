@@ -5,8 +5,8 @@
 #include <iomanip>
 #include <ctime>
 #include <limits>
-#include "lsm9ds0_device.hpp"
-#include "config_loader.hpp"
+#include "imu/drivers/lsm9ds0_device.hpp"
+#include "common/config_loader.hpp"
 
 // Poll sensor at 200 Hz and log data
 void run_sensor_polling() {

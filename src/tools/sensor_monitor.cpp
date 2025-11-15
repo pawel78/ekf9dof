@@ -8,8 +8,8 @@
 #include <vector>
 #include <array>
 #include <cmath>
-#include "lsm9ds0_device.hpp"
-#include "config_loader.hpp"
+#include "imu/drivers/lsm9ds0_device.hpp"
+#include "common/config_loader.hpp"
 
 /**
  * @brief Standalone LSM9DS0 Sensor Monitor

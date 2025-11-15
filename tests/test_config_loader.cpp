@@ -3,7 +3,7 @@
 #include <cassert>
 #include <cmath>
 #include <array>
-#include "../include/config_loader.hpp"
+#include "common/config_loader.hpp"
 
 // Helper function to compare floats
 bool float_equal(float a, float b, float epsilon = 1e-6f) {
