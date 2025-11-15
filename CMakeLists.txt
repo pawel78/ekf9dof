@@ -28,7 +28,7 @@ set(LIB_SOURCES
 # Create the main executable
 add_executable(${PROJECT_NAME} 
     ${LIB_SOURCES}
-    src/tools/main.cpp
+    src/main.cpp
 )
 
 # Add include directories
