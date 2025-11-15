@@ -96,9 +96,6 @@ int main() {
         // Configure IMU
         lsm9ds0_device::configure_imu();
 
-        // Configure temperature sensor
-        lsm9ds0_device::configure_temperature_sensor();
-
         // Load magnetometer calibration from config
         std::array<float, 3> mag_bias;
         std::array<float, 9> mag_matrix;

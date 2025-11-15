@@ -38,7 +38,6 @@ public:
         // Configure the IMU
         try {
             lsm9ds0_device::configure_imu();
-            lsm9ds0_device::configure_temperature_sensor();
             std::cout << "✓ IMU configured successfully\n";
         } catch (const std::exception& e) {
             std::cerr << "✗ Failed to configure IMU: " << e.what() << std::endl;
