@@ -3,9 +3,15 @@
 #include <system_error>
 #include <cstring>
 #include <array>
+#include <chrono>
+#include <thread>
+#include <atomic>
+#include <cmath>
 #include "imu/drivers/lsm9ds0_config.hpp"
 #include "imu/drivers/lsm9ds0.hpp"
 #include "imu/drivers/lsm9ds0_device.hpp"
+#include "common/channel_types.hpp"
+#include "imu/messages/imu_data.hpp"
 
 // Platform detection
 #if defined(__linux__)
@@ -105,7 +111,6 @@ public:
     }
 };
 
-// Example usage:
 namespace lsm9ds0_device {
 
 void i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t value) {
@@ -216,58 +221,113 @@ float raw_to_gauss(int16_t raw_mag) {
     return raw_mag * 0.00008f;
 }
 
-// Magnetometer calibration storage
-static std::array<float, 3> mag_bias = {0.0f, 0.0f, 0.0f};
-static std::array<float, 9> mag_matrix = {1.0f, 0.0f, 0.0f,
-                                          0.0f, 1.0f, 0.0f,
-                                          0.0f, 0.0f, 1.0f};
-static bool mag_calibration_loaded = false;
-
-// Load magnetometer calibration parameters
-void load_mag_calibration(const std::array<float, 3>& bias, const std::array<float, 9>& matrix) {
-    mag_bias = bias;
-    mag_matrix = matrix;
-    mag_calibration_loaded = true;
+// Helper function to get high-resolution timestamp in nanoseconds
+uint64_t get_timestamp_ns() {
+    auto now = std::chrono::steady_clock::now();
+    auto duration = now.time_since_epoch();
+    return std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
 }
 
-// Read magnetometer with calibration applied
-bool read_mag_calibrated(float &x, float &y, float &z) {
-    int16_t mx, my, mz;
-    if (!read_mag(mx, my, mz)) {
-        return false;
+// LSM9DS0 driver thread using channel architecture
+// Reads sensors at 200 Hz, converts to SI units, and publishes to separate channels
+void lsm9ds0_driver_thread(
+    std::atomic<bool>& running,
+    channels::RawAccelChannel& raw_accel_chan,
+    channels::RawGyroChannel& raw_gyro_chan,
+    channels::RawMagChannel& raw_mag_chan,
+    channels::RawTempChannel& raw_temp_chan)
+{
+    constexpr auto sample_period = std::chrono::milliseconds(5); // 200 Hz
+    
+    while (running.load()) {
+        // Capture timestamp as close to hardware read as possible
+        uint64_t timestamp = get_timestamp_ns();
+        
+        // Read accelerometer
+        int16_t ax_raw, ay_raw, az_raw;
+        if (read_accel(ax_raw, ay_raw, az_raw)) {
+            // Convert to g using datasheet formula
+            float ax = raw_to_g(ax_raw);
+            float ay = raw_to_g(ay_raw);
+            float az = raw_to_g(az_raw);
+            
+            imu::messages::raw_accel_msg_t accel_msg{timestamp, ax, ay, az};
+            if (!raw_accel_chan.send(accel_msg)) {
+                break; // Channel closed
+            }
+        }
+        
+        // Read gyroscope
+        int16_t gx_raw, gy_raw, gz_raw;
+        if (read_gyro(gx_raw, gy_raw, gz_raw)) {
+            // Convert to rad/s (dps → rad/s)
+            float gx_dps = raw_to_dps(gx_raw);
+            float gy_dps = raw_to_dps(gy_raw);
+            float gz_dps = raw_to_dps(gz_raw);
+            
+            constexpr float deg_to_rad = M_PI / 180.0f;
+            float gx = gx_dps * deg_to_rad;
+            float gy = gy_dps * deg_to_rad;
+            float gz = gz_dps * deg_to_rad;
+            
+            imu::messages::raw_gyro_msg_t gyro_msg{timestamp, gx, gy, gz};
+            if (!raw_gyro_chan.send(gyro_msg)) {
+                break; // Channel closed
+            }
+        }
+        
+        // Read magnetometer
+        int16_t mx_raw, my_raw, mz_raw;
+        if (read_mag(mx_raw, my_raw, mz_raw)) {
+            // Convert to gauss using datasheet formula
+            float mx = raw_to_gauss(mx_raw);
+            float my = raw_to_gauss(my_raw);
+            float mz = raw_to_gauss(mz_raw);
+            
+            imu::messages::raw_mag_msg_t mag_msg{timestamp, mx, my, mz};
+            if (!raw_mag_chan.send(mag_msg)) {
+                break; // Channel closed
+            }
+        }
+        
+        // Read temperature
+        int16_t temp_raw;
+        if (read_temperature(temp_raw)) {
+            // Convert to Celsius using datasheet formula
+            float temp_c = raw_to_celsius(temp_raw);
+            
+            imu::messages::raw_temp_msg_t temp_msg{timestamp, temp_c};
+            if (!raw_temp_chan.send(temp_msg)) {
+                break; // Channel closed
+            }
+        }
+        
+        // Sleep to maintain 200 Hz rate
+        std::this_thread::sleep_for(sample_period);
     }
-    
-    // Convert to gauss
-    float raw_x = raw_to_gauss(mx);
-    float raw_y = raw_to_gauss(my);
-    float raw_z = raw_to_gauss(mz);
-    
-    if (!mag_calibration_loaded) {
-        // No calibration loaded, return raw values
-        x = raw_x;
-        y = raw_y;
-        z = raw_z;
-        return true;
-    }
-    
-    // Apply hard iron offset
-    float temp_x = raw_x - mag_bias[0];
-    float temp_y = raw_y - mag_bias[1];
-    float temp_z = raw_z - mag_bias[2];
-    
-    // Apply soft iron correction matrix (3x3 matrix multiplication)
-    x = mag_matrix[0] * temp_x + mag_matrix[1] * temp_y + mag_matrix[2] * temp_z;
-    y = mag_matrix[3] * temp_x + mag_matrix[4] * temp_y + mag_matrix[5] * temp_z;
-    z = mag_matrix[6] * temp_x + mag_matrix[7] * temp_y + mag_matrix[8] * temp_z;
-    
-    return true;
 }
 
-// Get current calibration parameters
-void get_mag_calibration(std::array<float, 3>& bias, std::array<float, 9>& matrix) {
-    bias = mag_bias;
-    matrix = mag_matrix;
+/*
+// Old thread function (deprecated - kept for reference)
+void lsm9ds0_thread_func(channels::unbounded_buffer<std::array<int16_t, 10>>& data_buffer) {
+    while (true) {
+        std::array<int16_t, 10> sample;
+        bool aok = read_accel(sample[0], sample[1], sample[2]);
+        bool gok = read_gyro(sample[3], sample[4], sample[5]);
+        bool mok = read_mag(sample[6], sample[7], sample[8]);
+        bool tok = read_temperature(sample[9]);
+
+        if (aok && gok && mok && tok) {
+            data_buffer.send(sample);
+        } else {
+            // Optionally log read error
+        }
+
+        // Sleep for 5 ms to achieve ~200 Hz sampling rate
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
 }
+*/
 
 } // namespace lsm9ds0_device
 

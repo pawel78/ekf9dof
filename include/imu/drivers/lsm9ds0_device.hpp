@@ -1,6 +1,8 @@
 #pragma once
 #include <cstdint>
 #include <array>
+#include <atomic>
+#include "common/channel_types.hpp"
 
 // High-level IMU device helpers (wrapper around Linux I2C implementation)
 namespace lsm9ds0_device {
@@ -10,9 +12,6 @@ void i2c_write(uint8_t dev_addr, uint8_t reg_addr, uint8_t value);
 
 // Configure the IMU (calls the configuration examples)
 void configure_imu();
-
-// Configure the temperature sensor
-void configure_temperature_sensor();
 
 // Read a 16-bit little-endian register pair from device (low, high)
 // Returns true on success, false on failure
@@ -42,14 +41,17 @@ float raw_to_gauss(int16_t raw_mag);
 
 bool verify_device_ids();
 
-// Magnetometer calibration functions
-// Load calibration parameters from config
-void load_mag_calibration(const std::array<float, 3>& bias, const std::array<float, 9>& matrix);
+// LSM9DS0 driver thread using channel architecture
+// Reads sensors at 200 Hz, converts to SI units (g, rad/s, gauss, °C)
+// Timestamps each reading and publishes to separate channels per sensor type
+void lsm9ds0_driver_thread(
+    std::atomic<bool>& running,
+    channels::RawAccelChannel& raw_accel_chan,
+    channels::RawGyroChannel& raw_gyro_chan,
+    channels::RawMagChannel& raw_mag_chan,
+    channels::RawTempChannel& raw_temp_chan);
 
-// Read magnetometer with calibration applied
-bool read_mag_calibrated(float &x, float &y, float &z);
-
-// Get current calibration parameters
-void get_mag_calibration(std::array<float, 3>& bias, std::array<float, 9>& matrix);
+// Old thread function (deprecated, kept for backward compatibility)
+// void lsm9ds0_thread_func(channels::unbounded_buffer<std::array<int16_t, 10>>& data_buffer);
 
 } // namespace lsm9ds0_device

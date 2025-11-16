@@ -53,7 +53,8 @@ public:
         
         // Try to load magnetometer calibration
         if (config_loader::load_mag_calibration("../configs/config.yaml", mag_bias_, mag_matrix_)) {
-            lsm9ds0_device::load_mag_calibration(mag_bias_, mag_matrix_);
+            // TODO: Apply calibration in processing thread, not in driver
+            // lsm9ds0_device::load_mag_calibration(mag_bias_, mag_matrix_);
             calibration_loaded_ = true;
             std::cout << "✓ Magnetometer calibration loaded\n";
             std::cout << "  Bias: [" << mag_bias_[0] << ", " << mag_bias_[1] << ", " << mag_bias_[2] << "]\n";

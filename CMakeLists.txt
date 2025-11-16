@@ -21,6 +21,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 # Common library source files (excluding main executables)
 set(LIB_SOURCES
     src/imu/drivers/lsm9ds0.cpp
+    src/imu/drivers/lsm9ds0_driver.cpp
     src/tools/mag_calibration.cpp
     src/common/config_loader.cpp
 )
@@ -48,17 +49,6 @@ target_include_directories(calibrate_mag
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# Create the sensor monitor executable
-add_executable(sensor_monitor
-    ${LIB_SOURCES}
-    src/tools/sensor_monitor.cpp
-)
-
-target_include_directories(sensor_monitor
-    PUBLIC 
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
-
 # Enable testing
 enable_testing()
 add_subdirectory(tests)
@@ -69,7 +59,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples)
 endif()
 
 # Installation rules
-install(TARGETS ${PROJECT_NAME} calibrate_mag sensor_monitor
+install(TARGETS ${PROJECT_NAME} calibrate_mag
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib

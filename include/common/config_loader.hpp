@@ -25,4 +25,12 @@ bool load_mag_calibration(const std::string& config_path,
                           std::array<float, 3>& mag_bias,
                           std::array<float, 9>& mag_matrix);
 
+bool load_accel_calibration(const std::string& config_path,
+                          std::array<float, 3>& mag_bias,
+                          std::array<float, 9>& mag_matrix);
+
+bool load_gyro_calibration(const std::string& config_path,
+                          std::array<float, 3>& mag_bias,
+                          std::array<float, 9>& mag_matrix);
+
 } // namespace config_loader
