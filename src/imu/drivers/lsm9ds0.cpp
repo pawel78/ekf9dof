@@ -7,6 +7,7 @@
 #include <thread>
 #include <atomic>
 #include <cmath>
+#include <iostream>
 #include "imu/drivers/lsm9ds0_config.hpp"
 #include "imu/drivers/lsm9ds0.hpp"
 #include "imu/drivers/lsm9ds0_device.hpp"
