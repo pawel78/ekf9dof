@@ -45,6 +45,13 @@ int main() {
         int sample_count = 0;
         const int PRINT_INTERVAL = 200; // Print every 200 samples (1 second at 200 Hz)
         
+        // Latest data from each sensor (may be from different timestamps)
+        imu::messages::raw_accel_msg_t latest_accel{0, 0, 0, 0};
+        imu::messages::raw_gyro_msg_t latest_gyro{0, 0, 0, 0};
+        imu::messages::raw_mag_msg_t latest_mag{0, 0, 0, 0};
+        imu::messages::raw_temp_msg_t latest_temp{0, 0};
+        bool have_accel = false, have_gyro = false, have_mag = false, have_temp = false;
+        
         while (g_running.load()) {
             // Try to receive data from channels (non-blocking)
             imu::messages::raw_accel_msg_t accel_msg;
@@ -52,31 +59,34 @@ int main() {
             imu::messages::raw_mag_msg_t mag_msg;
             imu::messages::raw_temp_msg_t temp_msg;
             
-            bool got_accel = imu_driver.get_accel_channel().try_receive(accel_msg);
-            bool got_gyro = imu_driver.get_gyro_channel().try_receive(gyro_msg);
-            bool got_mag = imu_driver.get_mag_channel().try_receive(mag_msg);
-            bool got_temp = imu_driver.get_temp_channel().try_receive(temp_msg);
-            
-            // Debug: print when we get any data
-            if (got_accel || got_gyro || got_mag || got_temp) {
+            // Update latest data from each channel
+            if (imu_driver.get_accel_channel().try_receive(accel_msg)) {
+                latest_accel = accel_msg;
+                have_accel = true;
                 sample_count++;
-                if (sample_count == 1) {
-                    std::cout << "First data received! A=" << got_accel 
-                              << " G=" << got_gyro 
-                              << " M=" << got_mag 
-                              << " T=" << got_temp << "\n" << std::flush;
-                }
+            }
+            if (imu_driver.get_gyro_channel().try_receive(gyro_msg)) {
+                latest_gyro = gyro_msg;
+                have_gyro = true;
+            }
+            if (imu_driver.get_mag_channel().try_receive(mag_msg)) {
+                latest_mag = mag_msg;
+                have_mag = true;
+            }
+            if (imu_driver.get_temp_channel().try_receive(temp_msg)) {
+                latest_temp = temp_msg;
+                have_temp = true;
             }
             
-            if (got_accel && got_gyro && got_mag && got_temp) {
-                // Print every PRINT_INTERVAL samples
+            // Print once we have at least one sample from each sensor
+            if (have_accel && have_gyro && have_mag && have_temp) {
                 if (sample_count % PRINT_INTERVAL == 0) {
                     std::cout << std::fixed << std::setprecision(3);
-                    std::cout << "[" << accel_msg.timestamp_ns << "] "
-                              << "A(" << accel_msg.x << "," << accel_msg.y << "," << accel_msg.z << ") "
-                              << "G(" << gyro_msg.x << "," << gyro_msg.y << "," << gyro_msg.z << ") "
-                              << "M(" << mag_msg.x << "," << mag_msg.y << "," << mag_msg.z << ") "
-                              << "T(" << temp_msg.temp_c << "°C)\n" << std::flush;
+                    std::cout << "[" << latest_accel.timestamp_ns << "] "
+                              << "A(" << latest_accel.x << "," << latest_accel.y << "," << latest_accel.z << ") "
+                              << "G(" << latest_gyro.x << "," << latest_gyro.y << "," << latest_gyro.z << ") "
+                              << "M(" << latest_mag.x << "," << latest_mag.y << "," << latest_mag.z << ") "
+                              << "T(" << latest_temp.temp_c << "°C)\n" << std::flush;
                 }
             }
             
