@@ -40,6 +40,7 @@ int main() {
         // Simple consumer: read and print data for verification
         std::cout << "Reading sensor data (Ctrl+C to stop)...\n";
         std::cout << "Format: [timestamp_ns] accel(g) gyro(rad/s) mag(gauss) temp(°C)\n";
+        std::cout << std::flush;
         
         int sample_count = 0;
         const int PRINT_INTERVAL = 200; // Print every 200 samples (1 second at 200 Hz)
@@ -56,9 +57,18 @@ int main() {
             bool got_mag = imu_driver.get_mag_channel().try_receive(mag_msg);
             bool got_temp = imu_driver.get_temp_channel().try_receive(temp_msg);
             
-            if (got_accel && got_gyro && got_mag && got_temp) {
+            // Debug: print when we get any data
+            if (got_accel || got_gyro || got_mag || got_temp) {
                 sample_count++;
-                
+                if (sample_count == 1) {
+                    std::cout << "First data received! A=" << got_accel 
+                              << " G=" << got_gyro 
+                              << " M=" << got_mag 
+                              << " T=" << got_temp << "\n" << std::flush;
+                }
+            }
+            
+            if (got_accel && got_gyro && got_mag && got_temp) {
                 // Print every PRINT_INTERVAL samples
                 if (sample_count % PRINT_INTERVAL == 0) {
                     std::cout << std::fixed << std::setprecision(3);
@@ -66,7 +76,7 @@ int main() {
                               << "A(" << accel_msg.x << "," << accel_msg.y << "," << accel_msg.z << ") "
                               << "G(" << gyro_msg.x << "," << gyro_msg.y << "," << gyro_msg.z << ") "
                               << "M(" << mag_msg.x << "," << mag_msg.y << "," << mag_msg.z << ") "
-                              << "T(" << temp_msg.temp_c << "°C)\n";
+                              << "T(" << temp_msg.temp_c << "°C)\n" << std::flush;
                 }
             }
             

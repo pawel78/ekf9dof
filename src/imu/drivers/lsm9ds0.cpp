@@ -239,9 +239,18 @@ void lsm9ds0_driver_thread(
 {
     constexpr auto sample_period = std::chrono::milliseconds(5); // 200 Hz
     
+    int error_count = 0;
+    int sample_count = 0;
+    int accel_sent = 0, gyro_sent = 0, mag_sent = 0, temp_sent = 0;
+    bool first_sample = true;
+    
+    std::cout << "Driver thread: Starting sensor reads...\n" << std::flush;
+    
     while (running.load()) {
         // Capture timestamp as close to hardware read as possible
         uint64_t timestamp = get_timestamp_ns();
+        
+        bool all_ok = true;
         
         // Read accelerometer
         int16_t ax_raw, ay_raw, az_raw;
@@ -253,7 +262,17 @@ void lsm9ds0_driver_thread(
             
             imu::messages::raw_accel_msg_t accel_msg{timestamp, ax, ay, az};
             if (!raw_accel_chan.send(accel_msg)) {
+                std::cerr << "ERROR: Accel channel closed\n" << std::flush;
                 break; // Channel closed
+            }
+            accel_sent++;
+            if (first_sample) {
+                std::cout << "Driver: First accel sent: " << ax << ", " << ay << ", " << az << "\n" << std::flush;
+            }
+        } else {
+            all_ok = false;
+            if (first_sample || error_count < 5) {
+                std::cerr << "ERROR: Failed to read accelerometer\n" << std::flush;
             }
         }
         
@@ -272,7 +291,17 @@ void lsm9ds0_driver_thread(
             
             imu::messages::raw_gyro_msg_t gyro_msg{timestamp, gx, gy, gz};
             if (!raw_gyro_chan.send(gyro_msg)) {
+                std::cerr << "ERROR: Gyro channel closed\n" << std::flush;
                 break; // Channel closed
+            }
+            gyro_sent++;
+            if (first_sample) {
+                std::cout << "Driver: First gyro sent: " << gx << ", " << gy << ", " << gz << "\n" << std::flush;
+            }
+        } else {
+            all_ok = false;
+            if (first_sample || error_count < 5) {
+                std::cerr << "ERROR: Failed to read gyroscope\n" << std::flush;
             }
         }
         
@@ -286,7 +315,17 @@ void lsm9ds0_driver_thread(
             
             imu::messages::raw_mag_msg_t mag_msg{timestamp, mx, my, mz};
             if (!raw_mag_chan.send(mag_msg)) {
+                std::cerr << "ERROR: Mag channel closed\n" << std::flush;
                 break; // Channel closed
+            }
+            mag_sent++;
+            if (first_sample) {
+                std::cout << "Driver: First mag sent: " << mx << ", " << my << ", " << mz << "\n" << std::flush;
+            }
+        } else {
+            all_ok = false;
+            if (first_sample || error_count < 5) {
+                std::cerr << "ERROR: Failed to read magnetometer\n" << std::flush;
             }
         }
         
@@ -298,8 +337,33 @@ void lsm9ds0_driver_thread(
             
             imu::messages::raw_temp_msg_t temp_msg{timestamp, temp_c};
             if (!raw_temp_chan.send(temp_msg)) {
+                std::cerr << "ERROR: Temp channel closed\n" << std::flush;
                 break; // Channel closed
             }
+            temp_sent++;
+            if (first_sample) {
+                std::cout << "Driver: First temp sent: " << temp_c << "°C\n" << std::flush;
+            }
+        } else {
+            all_ok = false;
+            if (first_sample || error_count < 5) {
+                std::cerr << "ERROR: Failed to read temperature\n" << std::flush;
+            }
+        }
+        
+        if (!all_ok) {
+            error_count++;
+        }
+        
+        sample_count++;
+        first_sample = false;
+        
+        // Print status every 1000 samples (~5 seconds at 200 Hz)
+        if (sample_count % 1000 == 0) {
+            std::cout << "Driver stats: samples=" << sample_count 
+                      << " sent(A:" << accel_sent << " G:" << gyro_sent 
+                      << " M:" << mag_sent << " T:" << temp_sent << ")"
+                      << " errors=" << error_count << "\n" << std::flush;
         }
         
         // Sleep to maintain 200 Hz rate
