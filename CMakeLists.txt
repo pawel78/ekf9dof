@@ -22,7 +22,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set(LIB_SOURCES
     src/imu/drivers/lsm9ds0.cpp
     src/imu/drivers/lsm9ds0_driver.cpp
-    src/tools/mag_calibration.cpp
     src/common/config_loader.cpp
 )
 
@@ -38,16 +37,15 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# Create the calibration tool executable
-add_executable(calibrate_mag
-    ${LIB_SOURCES}
-    src/tools/calibrate_mag.cpp
-)
-
-target_include_directories(calibrate_mag
-    PUBLIC 
-        ${CMAKE_CURRENT_SOURCE_DIR}/include
-)
+# Calibration tool (disabled - not needed)
+# add_executable(calibrate_mag
+#     ${LIB_SOURCES}
+#     src/tools/calibrate_mag.cpp
+# )
+# target_include_directories(calibrate_mag
+#     PUBLIC 
+#         ${CMAKE_CURRENT_SOURCE_DIR}/include
+# )
 
 # Enable testing
 enable_testing()
@@ -59,7 +57,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples)
 endif()
 
 # Installation rules
-install(TARGETS ${PROJECT_NAME} calibrate_mag
+install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib

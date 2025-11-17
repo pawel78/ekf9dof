@@ -1,23 +1,22 @@
 #include "imu/drivers/lsm9ds0_driver.hpp"
-#include "imu/drivers/lsm9ds0_device.hpp"
+#include "imu/drivers/lsm9ds0_driver_internal.hpp"
 #include <iostream>
 #include <stdexcept>
 
-namespace lsm9ds0 {
-
 LSM9DS0Driver::LSM9DS0Driver()
     : running_(false)
+    , i2c_device_(std::make_unique<I2CDevice>("/dev/i2c-7"))
 {
     std::cout << "Initializing LSM9DS0 IMU...\n";
     
     // Verify device IDs
-    if (!lsm9ds0_device::verify_device_ids()) {
+    if (!verify_device_ids()) {
         throw std::runtime_error("Failed to verify LSM9DS0 device IDs");
     }
     std::cout << "✓ Device IDs verified\n";
     
     // Configure IMU
-    lsm9ds0_device::configure_imu();
+    configure_imu();
     std::cout << "✓ IMU configured\n";
 }
 
@@ -34,15 +33,8 @@ void LSM9DS0Driver::start() {
     std::cout << "Starting LSM9DS0 driver thread (200 Hz)...\n";
     running_.store(true);
 
-    // Spawn driver thread
-    driver_thread_ = std::thread(
-        lsm9ds0_device::lsm9ds0_driver_thread,
-        std::ref(running_),
-        std::ref(raw_accel_chan_),
-        std::ref(raw_gyro_chan_),
-        std::ref(raw_mag_chan_),
-        std::ref(raw_temp_chan_)
-    );
+    // Spawn driver thread using static member function
+    driver_thread_ = std::thread(driver_thread_func, this);
 
     std::cout << "✓ Driver thread started\n";
 }
@@ -64,5 +56,3 @@ void LSM9DS0Driver::stop() {
 
     std::cout << "✓ Driver stopped\n";
 }
-
-} // namespace lsm9ds0

@@ -24,13 +24,13 @@ int main() {
 
     try {
         // Create and initialize driver (owns channels, verifies device, configures registers)
-        lsm9ds0::LSM9DS0Driver imu_driver;
+        LSM9DS0Driver imu_driver;
         
         // Start the driver thread
         imu_driver.start();
         
         // TODO: Create and start processing thread
-        // lsm9ds0::ImuProcessingThread processing(
+        // ImuProcessingThread processing(
         //     imu_driver.get_accel_channel(),
         //     imu_driver.get_gyro_channel(),
         //     imu_driver.get_mag_channel()
