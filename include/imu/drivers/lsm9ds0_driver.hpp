@@ -4,6 +4,7 @@
 #include <atomic>
 #include <memory>
 #include "common/channel_types.hpp"
+#include "common/i2c_device.hpp"
 
 /**
  * @brief LSM9DS0 IMU Driver Class
@@ -19,9 +20,10 @@ public:
      * 
      * Creates output channels, verifies hardware, and configures registers.
      * 
+     * @param i2c_device_path Path to I2C device (e.g., "/dev/i2c-7")
      * @throws std::runtime_error if device verification or configuration fails
      */
-    LSM9DS0Driver();
+    explicit LSM9DS0Driver(const char* i2c_device_path);
 
     /**
      * @brief Destructor - stops the driver thread gracefully
@@ -161,9 +163,6 @@ private:
     // ========================================================================
     // Private implementation
     // ========================================================================
-    
-    // Forward declaration for nested I2C device class
-    class I2CDevice;
     
     // Driver thread function (static to work with std::thread)
     static void driver_thread_func(LSM9DS0Driver* driver);

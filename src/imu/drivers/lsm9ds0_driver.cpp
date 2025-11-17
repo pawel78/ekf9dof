@@ -1,11 +1,10 @@
 #include "imu/drivers/lsm9ds0_driver.hpp"
-#include "imu/drivers/lsm9ds0_driver_internal.hpp"
 #include <iostream>
 #include <stdexcept>
 
-LSM9DS0Driver::LSM9DS0Driver()
+LSM9DS0Driver::LSM9DS0Driver(const char* i2c_device_path)
     : running_(false)
-    , i2c_device_(std::make_unique<I2CDevice>("/dev/i2c-7"))
+    , i2c_device_(std::make_unique<I2CDevice>(i2c_device_path))
 {
     std::cout << "Initializing LSM9DS0 IMU...\n";
     

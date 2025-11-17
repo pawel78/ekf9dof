@@ -24,7 +24,7 @@ int main() {
 
     try {
         // Create and initialize driver (owns channels, verifies device, configures registers)
-        LSM9DS0Driver imu_driver;
+        LSM9DS0Driver imu_driver("/dev/i2c-7");
         
         // Start the driver thread
         imu_driver.start();
