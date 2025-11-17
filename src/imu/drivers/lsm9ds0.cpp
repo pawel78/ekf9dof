@@ -8,8 +8,6 @@
 #include <atomic>
 #include <cmath>
 #include <iostream>
-#include "imu/drivers/lsm9ds0_config.hpp"
-#include "imu/drivers/lsm9ds0.hpp"
 #include "imu/drivers/lsm9ds0_driver_internal.hpp"
 #include "common/channel_types.hpp"
 #include "imu/messages/imu_data.hpp"
@@ -105,8 +103,8 @@ bool LSM9DS0Driver::i2c_read16_le(uint8_t dev_addr, uint8_t reg_low, int16_t& ou
 
 bool LSM9DS0Driver::verify_device_ids() {
     try {
-        uint8_t whoami_g = i2c_read_reg(lsm9ds0::G_ADDR, lsm9ds0::WHO_AM_I_G);
-        uint8_t whoami_xm = i2c_read_reg(lsm9ds0::XM_ADDR, lsm9ds0::WHO_AM_I_XM);
+        uint8_t whoami_g = i2c_read_reg(G_ADDR, WHO_AM_I_G);
+        uint8_t whoami_xm = i2c_read_reg(XM_ADDR, WHO_AM_I_XM);
         return (whoami_g == 0b11010100) && (whoami_xm == 0b01001001);
     } catch (...) {
         return false;
@@ -114,22 +112,38 @@ bool LSM9DS0Driver::verify_device_ids() {
 }
 
 void LSM9DS0Driver::configure_imu() {
-    // Create a wrapper function that calls the member method
-    // Note: The config functions expect a plain function pointer, so we need a static wrapper
-    // For now, we'll use a static helper function that accesses a temporary global
-    static LSM9DS0Driver* temp_driver_ptr = nullptr;
-    temp_driver_ptr = this;
-    
-    auto static_write = [](uint8_t dev_addr, uint8_t reg_addr, uint8_t value) {
-        temp_driver_ptr->i2c_write(dev_addr, reg_addr, value);
-    };
-    
-    lsm9ds0_config::configure_gyroscope(+static_write); // Unary + converts to function pointer
-    lsm9ds0_config::configure_accelerometer(+static_write);
-    lsm9ds0_config::configure_magnetometer(+static_write);
-    lsm9ds0_config::configure_temperature_sensor(+static_write);
-    
-    temp_driver_ptr = nullptr;
+    configure_gyroscope();
+    configure_accelerometer();
+    configure_magnetometer();
+    configure_temperature_sensor();
+}
+
+void LSM9DS0Driver::configure_gyroscope() {
+    // CTRL_REG1_G: ODR=95Hz, Cutoff=12.5Hz, all axes enabled, normal mode
+    i2c_write(G_ADDR, CTRL_REG1_G, 0b00001111);
+    // CTRL_REG4_G: 245 dps full scale
+    i2c_write(G_ADDR, CTRL_REG4_G, 0b00000000);
+}
+
+void LSM9DS0Driver::configure_accelerometer() {
+    // CTRL_REG1_XM: ODR=100Hz, all axes enabled
+    i2c_write(XM_ADDR, CTRL_REG1_XM, 0b01100111);
+    // CTRL_REG2_XM: ±2g full scale
+    i2c_write(XM_ADDR, CTRL_REG2_XM, 0b00000000);
+}
+
+void LSM9DS0Driver::configure_magnetometer() {
+    // CTRL_REG5_XM: mag resolution=high, ODR=50Hz
+    i2c_write(XM_ADDR, CTRL_REG5_XM, 0b01110000);
+    // CTRL_REG6_XM: ±2 gauss full scale
+    i2c_write(XM_ADDR, CTRL_REG6_XM, 0b00000000);
+    // CTRL_REG7_XM: continuous conversion mode
+    i2c_write(XM_ADDR, CTRL_REG7_XM, 0b00000000);
+}
+
+void LSM9DS0Driver::configure_temperature_sensor() {
+    // CTRL_REG5_XM: enable temperature sensor (bit 7) + mag settings
+    i2c_write(XM_ADDR, CTRL_REG5_XM, 0b01110000 | 0b10000000);
 }
 
 // ============================================================================
@@ -137,27 +151,27 @@ void LSM9DS0Driver::configure_imu() {
 // ============================================================================
 
 bool LSM9DS0Driver::read_accel(int16_t& x, int16_t& y, int16_t& z) {
-    return i2c_read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_X_L_A, x) &&
-           i2c_read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_Y_L_A, y) &&
-           i2c_read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_Z_L_A, z);
+    return i2c_read16_le(XM_ADDR, OUT_X_L_A, x) &&
+           i2c_read16_le(XM_ADDR, OUT_Y_L_A, y) &&
+           i2c_read16_le(XM_ADDR, OUT_Z_L_A, z);
 }
 
 bool LSM9DS0Driver::read_gyro(int16_t& x, int16_t& y, int16_t& z) {
-    return i2c_read16_le(lsm9ds0::G_ADDR, lsm9ds0::OUT_X_L_G, x) &&
-           i2c_read16_le(lsm9ds0::G_ADDR, lsm9ds0::OUT_Y_L_G, y) &&
-           i2c_read16_le(lsm9ds0::G_ADDR, lsm9ds0::OUT_Z_L_G, z);
+    return i2c_read16_le(G_ADDR, OUT_X_L_G, x) &&
+           i2c_read16_le(G_ADDR, OUT_Y_L_G, y) &&
+           i2c_read16_le(G_ADDR, OUT_Z_L_G, z);
 }
 
 bool LSM9DS0Driver::read_mag(int16_t& x, int16_t& y, int16_t& z) {
-    return i2c_read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_X_L_M, x) &&
-           i2c_read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_Y_L_M, y) &&
-           i2c_read16_le(lsm9ds0::XM_ADDR, lsm9ds0::OUT_Z_L_M, z);
+    return i2c_read16_le(XM_ADDR, OUT_X_L_M, x) &&
+           i2c_read16_le(XM_ADDR, OUT_Y_L_M, y) &&
+           i2c_read16_le(XM_ADDR, OUT_Z_L_M, z);
 }
 
 bool LSM9DS0Driver::read_temperature(int16_t& temp) {
     try {
-        uint8_t lo = i2c_read_reg(lsm9ds0::XM_ADDR, lsm9ds0::OUT_TEMP_L_XM);
-        uint8_t hi = i2c_read_reg(lsm9ds0::XM_ADDR, lsm9ds0::OUT_TEMP_H_XM);
+        uint8_t lo = i2c_read_reg(XM_ADDR, OUT_TEMP_L_XM);
+        uint8_t hi = i2c_read_reg(XM_ADDR, OUT_TEMP_H_XM);
 
         // Temperature is 12-bit, two's-complement, right-justified
         uint16_t raw = static_cast<uint16_t>(lo) | (static_cast<uint16_t>(hi) << 8);
