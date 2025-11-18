@@ -281,7 +281,8 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
         
         first_sample = false;
         sample_count++;
-              
+
+             
         // Sleep to maintain 200 Hz rate
         std::this_thread::sleep_for(sample_period);
     }

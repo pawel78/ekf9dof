@@ -13,6 +13,25 @@ The system uses **independent channels per sensor type** for maximum flexibility
 - **Raw** = Uncalibrated SI units from driver (e.g., g, rad/s, gauss)
 - **Processed** = Calibrated SI units after correction (e.g., bias, ellipsoid)
 
+### Channel Types Location
+
+All channel types and message definitions are in the **`imu` namespace**:
+- Include: `#include "imu/messages/imu_data.hpp"`
+- Channel types: `imu::RawGyroChannel`, `imu::ProcAccelChannel`, etc.
+- Message types: `imu::messages::raw_gyro_msg_t`, etc.
+
+**Consumer code only needs:**
+```cpp
+#include "imu/messages/imu_data.hpp"  // Gets messages + channel types
+
+void my_consumer(imu::RawGyroChannel& gyro_channel) {
+    imu::messages::raw_gyro_msg_t msg;
+    if (gyro_channel.try_receive(msg)) {
+        // Use data - no driver knowledge needed!
+    }
+}
+```
+
 ### Driver Responsibilities
 
 The driver **encapsulates all hardware details**:
@@ -289,9 +308,9 @@ proc_mag_msg_t process_mag(const raw_mag_msg_t& raw) {
 
 ```cpp
 void lsm9ds0_driver_thread(
-    channels::RawAccelChannel& raw_accel_chan,
-    channels::RawGyroChannel& raw_gyro_chan,
-    channels::RawMagChannel& raw_mag_chan,
+    imu::RawAccelChannel& raw_accel_chan,
+    imu::RawGyroChannel& raw_gyro_chan,
+    imu::RawMagChannel& raw_mag_chan,
     std::atomic<bool>& running)
 {
     while (running) {
@@ -320,16 +339,16 @@ void lsm9ds0_driver_thread(
 }
 ```
 
-### Processing Thread (Transformer)
+### Processing Thread (Consumer → Producer)
 
 ```cpp
 void imu_processing_thread(
-    channels::RawAccelChannel& raw_accel_chan,
-    channels::RawGyroChannel& raw_gyro_chan,
-    channels::RawMagChannel& raw_mag_chan,
-    channels::ProcAccelChannel& proc_accel_chan,
-    channels::ProcGyroChannel& proc_gyro_chan,
-    channels::ProcMagChannel& proc_mag_chan,
+    imu::RawAccelChannel& raw_accel_chan,
+    imu::RawGyroChannel& raw_gyro_chan,
+    imu::RawMagChannel& raw_mag_chan,
+    imu::ProcAccelChannel& proc_accel_chan,
+    imu::ProcGyroChannel& proc_gyro_chan,
+    imu::ProcMagChannel& proc_mag_chan,
     std::atomic<bool>& running)
 {
     // Load calibration parameters
@@ -381,10 +400,13 @@ void imu_processing_thread(
 ### Consumer Thread (EKF/Fusion)
 
 ```cpp
+### EKF Thread (Consumer)
+
+```cpp
 void ekf_thread(
-    channels::ProcAccelChannel& accel_chan,
-    channels::ProcGyroChannel& gyro_chan,
-    channels::ProcMagChannel& mag_chan)
+    imu::ProcAccelChannel& accel_chan,
+    imu::ProcGyroChannel& gyro_chan,
+    imu::ProcMagChannel& mag_chan)
 {
     while (true) {
         // Can handle async sensor updates
@@ -417,14 +439,14 @@ void ekf_thread(
 
 ```cpp
 int main() {
-    // Create channels
-    channels::RawAccelChannel raw_accel_chan;
-    channels::RawGyroChannel raw_gyro_chan;
-    channels::RawMagChannel raw_mag_chan;
+    // Create channels in imu namespace
+    imu::RawAccelChannel raw_accel_chan;
+    imu::RawGyroChannel raw_gyro_chan;
+    imu::RawMagChannel raw_mag_chan;
     
-    channels::ProcAccelChannel proc_accel_chan;
-    channels::ProcGyroChannel proc_gyro_chan;
-    channels::ProcMagChannel proc_mag_chan;
+    imu::ProcAccelChannel proc_accel_chan;
+    imu::ProcGyroChannel proc_gyro_chan;
+    imu::ProcMagChannel proc_mag_chan;
     
     std::atomic<bool> running{true};
     
@@ -690,7 +712,7 @@ class Channel {
 
 **Producer (Driver Thread):**
 ```cpp
-void driver_thread(channels::RawImuChannel& raw_channel) {
+void driver_thread(imu::RawImuChannel& raw_channel) {
     while (running) {
         raw_imu_msg_t msg = read_sensors();
         if (!raw_channel.send(msg)) {
@@ -703,8 +725,8 @@ void driver_thread(channels::RawImuChannel& raw_channel) {
 
 **Consumer (Processing Thread):**
 ```cpp
-void processing_thread(channels::RawImuChannel& raw_channel,
-                      channels::ProcImuChannel& proc_channel) {
+void processing_thread(imu::RawImuChannel& raw_channel,
+                      imu::ProcImuChannel& proc_channel) {
     while (true) {
         auto msg_opt = raw_channel.receive();
         if (!msg_opt) {
@@ -720,8 +742,8 @@ void processing_thread(channels::RawImuChannel& raw_channel,
 **Main Thread (Coordination):**
 ```cpp
 int main() {
-    channels::RawImuChannel raw_channel;
-    channels::ProcImuChannel proc_channel;
+    imu::RawImuChannel raw_channel;
+    imu::ProcImuChannel proc_channel;
     
     std::thread driver(driver_thread, std::ref(raw_channel));
     std::thread processor(processing_thread, 

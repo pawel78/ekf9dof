@@ -70,10 +70,37 @@ ekf9dof/
 
 ## Documentation
 
+- [Channel Architecture](docs/CHANNEL_ARCHITECTURE.md) - Thread-safe communication design
 - [Cross-Platform Build Support](docs/CROSS_PLATFORM_BUILD.md) - Building on macOS and other platforms
 - [Magnetometer Calibration Guide](docs/MAGNETOMETER_CALIBRATION.md) - Comprehensive calibration documentation
 - [Quick Start Guide](CALIBRATION_QUICK_START.md) - 5-minute calibration setup
 - [Scripts README](scripts/README.md) - Data visualization tools
+
+## Architecture
+
+### Channel-Based Communication
+
+The system uses a **simple channel-based architecture** for thread-safe data flow:
+
+```cpp
+// Consumer code only needs one include
+#include "imu/messages/imu_data.hpp"
+
+void my_consumer(imu::RawGyroChannel& gyro_channel) {
+    imu::messages::raw_gyro_msg_t msg;
+    if (gyro_channel.try_receive(msg)) {
+        // Use gyro data - no driver knowledge needed!
+    }
+}
+```
+
+**Key Benefits:**
+- Consumers only depend on message/channel types (in `imu` namespace)
+- No driver includes in consumer code
+- Easy to swap sensors - change one line in main()
+- Thread-safe producer-consumer pattern
+
+See [CHANNEL_ARCHITECTURE.md](docs/CHANNEL_ARCHITECTURE.md) for details.
 
 ## Hardware Requirements
 

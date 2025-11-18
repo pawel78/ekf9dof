@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "common/channel.hpp"
 
 namespace imu {
     namespace messages {
@@ -106,4 +107,16 @@ namespace imu {
         };
 
     } // namespace messages
+
+    // Channel type aliases in imu namespace
+    using RawAccelChannel = channel::Channel<messages::raw_accel_msg_t>;
+    using RawGyroChannel = channel::Channel<messages::raw_gyro_msg_t>;
+    using RawMagChannel = channel::Channel<messages::raw_mag_msg_t>;
+    using RawTempChannel = channel::Channel<messages::raw_temp_msg_t>;
+    
+    using ProcAccelChannel = channel::Channel<messages::proc_accel_msg_t>;
+    using ProcGyroChannel = channel::Channel<messages::proc_gyro_msg_t>;
+    using ProcMagChannel = channel::Channel<messages::proc_mag_msg_t>;
+    using ProcTempChannel = channel::Channel<messages::proc_temp_msg_t>;
+
 } // namespace imu
