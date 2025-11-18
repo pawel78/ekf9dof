@@ -1,9 +1,8 @@
 #include "imu/processing/imu_processing.hpp"
-#include "imu/drivers/lsm9ds0_device.hpp"
 #include "common/config_loader.hpp"
 #include <iostream>
 
-class imu
+class IMUPreprocessor
 {
 private:
     std::array<float, 3> ym_ = {0.0f, 0.0f, 0.0f};
@@ -37,15 +36,18 @@ private:
             mx_cal = mx_raw;
             my_cal = my_raw;
             mz_cal = mz_raw;
+            std::cout << "⚠ Magnetometer calibration not loaded, returning raw values\n";
             return;
         }
 
         // Apply hard iron correction (subtract bias)
+        std::cout << "✓ Applying magnetometer calibration\n";
         float mx_bias_corrected = mx_raw - mag_bias_[0];
         float my_bias_corrected = my_raw - mag_bias_[1];
         float mz_bias_corrected = mz_raw - mag_bias_[2];
 
         // Apply soft iron correction (matrix multiplication)
+        std::cout << "✓ Applying magnetometer soft iron correction\n";
         mx_cal = mag_matrix_[0] * mx_bias_corrected + mag_matrix_[1] * my_bias_corrected + mag_matrix_[2] * mz_bias_corrected;
         my_cal = mag_matrix_[3] * mx_bias_corrected + mag_matrix_[4] * my_bias_corrected + mag_matrix_[5] * mz_bias_corrected;
         mz_cal = mag_matrix_[6] * mx_bias_corrected + mag_matrix_[7] * my_bias_corrected + mag_matrix_[8] * mz_bias_corrected;
@@ -58,15 +60,18 @@ private:
             ax_cal = ax_raw;
             ay_cal = ay_raw;
             az_cal = az_raw;
+            std::cout << "⚠ Accelerometer calibration not loaded, returning raw values\n";
             return;
         }
 
         // Apply hard iron correction (subtract bias)
+        std::cout << "✓ Applying accelerometer bias calibration\n";
         float ax_bias_corrected = ax_raw - accel_bias_[0];
         float ay_bias_corrected = ay_raw - accel_bias_[1];
         float az_bias_corrected = az_raw - accel_bias_[2];
 
         // Apply soft iron correction (matrix multiplication)
+        std::cout << "✓ Applying accelerometer scale factor calibration\n";
         ax_cal = accel_matrix_[0] * ax_bias_corrected + accel_matrix_[1] * ay_bias_corrected + accel_matrix_[2] * az_bias_corrected;
         ay_cal = accel_matrix_[3] * ax_bias_corrected + accel_matrix_[4] * ay_bias_corrected + accel_matrix_[5] * az_bias_corrected;
         az_cal = accel_matrix_[6] * ax_bias_corrected + accel_matrix_[7] * ay_bias_corrected + accel_matrix_[8] * az_bias_corrected;
@@ -80,18 +85,21 @@ private:
             gx_cal = gx_raw;
             gy_cal = gy_raw;
             gz_cal = gz_raw;
+            std::cout << "⚠ Gyroscope calibration not loaded, returning raw values\n";
             return;
         }
 
         // Apply hard iron correction (subtract bias)
-        float mx_bias_corrected = gx_raw - mag_bias_[0];
-        float my_bias_corrected = gy_raw - mag_bias_[1];
-        float mz_bias_corrected = gz_raw - mag_bias_[2];
+        std::cout << "✓ Applying gyroscope bias calibration\n";
+        float gx_bias_corrected = gx_raw - gyro_bias_[0];
+        float gy_bias_corrected = gy_raw - gyro_bias_[1];
+        float gz_bias_corrected = gz_raw - gyro_bias_[2];
 
         // Apply soft iron correction (matrix multiplication)
-        gx_cal = gyro_matrix_[0] * mx_bias_corrected + gyro_matrix_[1] * my_bias_corrected + gyro_matrix_[2] * mz_bias_corrected;
-        gy_cal = gyro_matrix_[3] * mx_bias_corrected + gyro_matrix_[4] * my_bias_corrected + gyro_matrix_[5] * mz_bias_corrected;
-        gz_cal = gyro_matrix_[6] * mx_bias_corrected + gyro_matrix_[7] * my_bias_corrected + gyro_matrix_[8] * mz_bias_corrected;
+        std::cout << "✓ Applying gyroscope scale factor calibration\n";
+        gx_cal = gyro_matrix_[0] * gx_bias_corrected + gyro_matrix_[1] * gy_bias_corrected + gyro_matrix_[2] * gz_bias_corrected;
+        gy_cal = gyro_matrix_[3] * gx_bias_corrected + gyro_matrix_[4] * gy_bias_corrected + gyro_matrix_[5] * gz_bias_corrected;
+        gz_cal = gyro_matrix_[6] * gx_bias_corrected + gyro_matrix_[7] * gy_bias_corrected + gyro_matrix_[8] * gz_bias_corrected;
     }
 
 public:
@@ -164,6 +172,13 @@ public:
     {
         // Read all sensors
         int16_t gx_raw, gy_raw, gz_raw;
+        imu::messages::raw_gyro_msg_t gyro_msg;
+
+        if (imu_driver.get_gyro_channel().try_receive(gyro_msg)) {
+                latest_gyro = gyro_msg;
+                have_gyro = true;
+            }
+            
         bool gyro_ok = lsm9ds0_device::read_gyro(gx_raw, gy_raw, gz_raw);
 
         if (!gyro_ok)
