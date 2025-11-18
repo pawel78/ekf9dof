@@ -57,26 +57,6 @@ public:
      */
     bool is_running() const { return running_.load(); }
 
-    /**
-     * @brief Get reference to accelerometer channel
-     */
-    channels::RawAccelChannel& get_accel_channel() { return raw_accel_chan_; }
-
-    /**
-     * @brief Get reference to gyroscope channel
-     */
-    channels::RawGyroChannel& get_gyro_channel() { return raw_gyro_chan_; }
-
-    /**
-     * @brief Get reference to magnetometer channel
-     */
-    channels::RawMagChannel& get_mag_channel() { return raw_mag_chan_; }
-
-    /**
-     * @brief Get reference to temperature channel
-     */
-    channels::RawTempChannel& get_temp_channel() { return raw_temp_chan_; }
-
 private:
     // ========================================================================
     // LSM9DS0 Register Map - Hardware constants
@@ -199,10 +179,4 @@ private:
     std::atomic<bool> running_;
     std::thread driver_thread_;
     std::unique_ptr<I2CDevice> i2c_device_;
-
-    // Channels owned by driver
-    channels::RawAccelChannel raw_accel_chan_;
-    channels::RawGyroChannel raw_gyro_chan_;
-    channels::RawMagChannel raw_mag_chan_;
-    channels::RawTempChannel raw_temp_chan_;
 };

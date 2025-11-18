@@ -160,62 +160,36 @@ public:
     }
     void get_gyro_measurement(float &gx, float &gy, float &gz)
     {
-        // Read all sensors
-        imu::messages::raw_gyro_msg_t gyro_msg;
+        // Try to read gyro from channel
+        bool have_data = false;
+        imu::messages::raw_gyro_msg_t gyro{0, 0, 0, 0};
+        if (imu::channels::raw_gyro.try_receive(gyro)) have_data = true;
 
-        if (imu_driver.get_gyro_channel().try_receive(gyro_msg)) {
-                latest_gyro = gyro_msg;
-                have_gyro = true;
-            }
-
-        bool gyro_ok = lsm9ds0_device::read_gyro(gx_raw, gy_raw, gz_raw);
-
-        if (!gyro_ok)
-        {
-            gx = 999;
-            gy = 999;
-            gz = 999;
-            return;
-        }
-        apply_gyro_calibration(gx_raw, gy_raw, gz_raw, yg_[0], yg_[1], yg_[2]);
+        apply_gyro_calibration(gyro.x, gyro.y, gyro.z, yg_[0], yg_[1], yg_[2]);
         gx = yg_[0];
         gy = yg_[1];
         gz = yg_[2];
     }
     void get_accel_measurement(float &ax, float &ay, float &az)
     {
-        // Read all sensors
-        int16_t ax_raw, ay_raw, az_raw;
-        bool accel_ok = lsm9ds0_device::read_accel(ax_raw, ay_raw, az_raw);
+        // Try to read gyro from channel
+        bool have_data = false;
+        imu::messages::raw_accel_msg_t accel{0, 0, 0, 0};
+        if (imu::channels::raw_accel.try_receive(accel)) have_data = true;
 
-        if (!accel_ok)
-        {
-            std::cout << "Accel sensor read error - retrying...\n";
-            ax = 999;
-            ay = 999;
-            az = 999;
-            return;
-        }
-        apply_accel_calibration(ax_raw, ay_raw, az_raw, ya_[0], ya_[1], ya_[2]);
+        apply_accel_calibration(accel.x, accel.y, accel.z, ya_[0], ya_[1], ya_[2]);
         ax = ya_[0];
         ay = ya_[1];
         az = ya_[2];
     }
+
     void get_mag_measurement(float &mx, float &my, float &mz)
     {
-        // Read all sensors
-        int16_t mx_raw, my_raw, mz_raw;
-        bool mag_ok = lsm9ds0_device::read_mag(mx_raw, my_raw, mz_raw);
-
-        if (!mag_ok)
-        {
-            std::cout << "Mag sensor read error - retrying...\n";
-            mx = 999;
-            my = 999;
-            mz = 999;
-            return;
-        }
-        apply_mag_calibration(mx_raw, my_raw, mz_raw, ym_[0], ym_[1], ym_[2]);
+        // Try to read gyro from channel
+        bool have_data = false;
+        imu::messages::raw_mag_msg_t mag{0, 0, 0, 0};
+        if (imu::channels::raw_mag.try_receive(mag)) have_data = true;
+        apply_mag_calibration(mag.x, mag.y, mag.z, ym_[0], ym_[1], ym_[2]);
         mx = ym_[0];
         my = ym_[1];
         mz = ym_[2];

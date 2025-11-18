@@ -188,7 +188,7 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
             float az = raw_to_g(az_raw);
             
             imu::messages::raw_accel_msg_t accel_msg{timestamp, ax, ay, az};
-            if (!driver->raw_accel_chan_.send(accel_msg)) {
+            if (!imu::channels::raw_accel.send(accel_msg)) {
                 std::cerr << "ERROR: Accel channel closed\n" << std::flush;
                 break;
             }
@@ -216,7 +216,7 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
             float gz = gz_dps * deg_to_rad;
             
             imu::messages::raw_gyro_msg_t gyro_msg{timestamp, gx, gy, gz};
-            if (!driver->raw_gyro_chan_.send(gyro_msg)) {
+            if (!imu::channels::raw_gyro.send(gyro_msg)) {
                 std::cerr << "ERROR: Gyro channel closed\n" << std::flush;
                 break;
             }
@@ -239,7 +239,7 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
             float mz = raw_to_gauss(mz_raw);
             
             imu::messages::raw_mag_msg_t mag_msg{timestamp, mx, my, mz};
-            if (!driver->raw_mag_chan_.send(mag_msg)) {
+            if (!imu::channels::raw_mag.send(mag_msg)) {
                 std::cerr << "ERROR: Mag channel closed\n" << std::flush;
                 break;
             }
@@ -260,7 +260,7 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
             float temp_c = raw_to_celsius(temp_raw);
             
             imu::messages::raw_temp_msg_t temp_msg{timestamp, temp_c};
-            if (!driver->raw_temp_chan_.send(temp_msg)) {
+            if (!imu::channels::raw_temp.send(temp_msg)) {
                 std::cerr << "ERROR: Temp channel closed\n" << std::flush;
                 break;
             }

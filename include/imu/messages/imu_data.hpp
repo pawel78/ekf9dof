@@ -119,4 +119,18 @@ namespace imu {
     using ProcMagChannel = channel::Channel<messages::proc_mag_msg_t>;
     using ProcTempChannel = channel::Channel<messages::proc_temp_msg_t>;
 
+    // Global channel instances - drivers publish, consumers subscribe
+    // No driver instantiation needed in consumer code!
+    namespace channels {
+        inline RawAccelChannel raw_accel;
+        inline RawGyroChannel raw_gyro;
+        inline RawMagChannel raw_mag;
+        inline RawTempChannel raw_temp;
+        
+        inline ProcAccelChannel proc_accel;
+        inline ProcGyroChannel proc_gyro;
+        inline ProcMagChannel proc_mag;
+        inline ProcTempChannel proc_temp;
+    }
+
 } // namespace imu

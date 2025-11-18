@@ -20,21 +20,19 @@ void signal_handler(int signal) {
 }
 
 /**
- * @brief Example consumer - only needs channel reference, no driver knowledge
+ * @brief Example consumer - uses global channel directly, no driver knowledge
  * 
- * This function receives a channel reference and reads from it.
+ * This function reads from the global gyro channel.
  * It has ZERO knowledge of drivers, hardware, or I2C.
- * 
- * @param gyro_channel Reference to gyro data channel
  */
-void consume_gyro_data(imu::RawGyroChannel& gyro_channel) {
-    std::cout << "Gyro consumer started (reading from channel)...\n";
+void consume_gyro_data() {
+    std::cout << "Gyro consumer started (reading from global channel)...\n";
     
     int count = 0;
     while (g_running.load() && count < 1000) {
         imu::messages::raw_gyro_msg_t gyro_msg;
         
-        if (gyro_channel.try_receive(gyro_msg)) {
+        if (imu::channels::raw_gyro.try_receive(gyro_msg)) {
             if (count % 200 == 0) {  // Print every 200 samples
                 std::cout << "Gyro: x=" << gyro_msg.x 
                          << " y=" << gyro_msg.y 
@@ -48,15 +46,9 @@ void consume_gyro_data(imu::RawGyroChannel& gyro_channel) {
 }
 
 /**
- * @brief Another consumer - only needs channel references
- * 
- * @param accel_channel Reference to accel data channel
- * @param gyro_channel Reference to gyro data channel  
- * @param mag_channel Reference to mag data channel
+ * @brief Another consumer - uses global channels directly
  */
-void consume_all_sensors(imu::RawAccelChannel& accel_channel,
-                         imu::RawGyroChannel& gyro_channel,
-                         imu::RawMagChannel& mag_channel) {
+void consume_all_sensors() {
     std::cout << "Multi-sensor consumer started...\n";
     
     int sample_count = 0;
@@ -67,9 +59,9 @@ void consume_all_sensors(imu::RawAccelChannel& accel_channel,
     while (g_running.load()) {
         bool have_data = false;
         
-        if (accel_channel.try_receive(accel)) { have_data = true; sample_count++; }
-        if (gyro_channel.try_receive(gyro)) have_data = true;
-        if (mag_channel.try_receive(mag)) have_data = true;
+        if (imu::channels::raw_accel.try_receive(accel)) { have_data = true; sample_count++; }
+        if (imu::channels::raw_gyro.try_receive(gyro)) have_data = true;
+        if (imu::channels::raw_mag.try_receive(mag)) have_data = true;
         
         if (have_data && sample_count % 200 == 0) {
             std::cout << std::fixed << std::setprecision(2)
@@ -94,18 +86,14 @@ int main() {
         // Start the driver
         imu_driver.start();
         
-        // Pass channel references to consumers - they don't know about the driver!
-        // Consumer only needs: #include "common/channel_types.hpp"
+        // Consumers use global channels - no driver references needed!
+        // Consumer only needs: #include "imu/messages/imu_data.hpp"
         
         // Option 1: Single sensor consumer
-        // consume_gyro_data(imu_driver.get_gyro_channel());
+        // consume_gyro_data();
         
         // Option 2: Multi-sensor consumer  
-        consume_all_sensors(
-            imu_driver.get_accel_channel(),
-            imu_driver.get_gyro_channel(),
-            imu_driver.get_mag_channel()
-        );
+        consume_all_sensors();
         
         std::cout << "\nShutting down...\n";
         imu_driver.stop();
