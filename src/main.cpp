@@ -96,17 +96,28 @@ int main()
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
-    IMUPreprocessor imu_preprocessor;
-    LSM9DS0Driver imu_driver("/dev/i2c-7");
-
     try
     {
-        // Start the IMU driver
+        IMUPreprocessor imu_preprocessor;
+        LSM9DS0Driver imu_driver("/dev/i2c-7");
+
+        // Start the IMU driver (spawns internal thread)
         imu_driver.start();
        
-        // Start the IMU preprocessor
+        // Start the IMU preprocessor (spawns internal thread)
         imu_preprocessor.start();
 
+        // Wait for shutdown signal
+        while (g_running.load())
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        // Cleanup
+        std::cout << "\nShutting down...\n";
+        imu_preprocessor.stop();
+        imu_driver.stop();
+        std::cout << "Shutdown complete\n";
     }
     catch (const std::exception &e)
     {

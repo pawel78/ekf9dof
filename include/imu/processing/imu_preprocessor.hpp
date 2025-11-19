@@ -2,13 +2,15 @@
 #include <array>
 #include <cstdint>
 #include <atomic>
+#include <thread>
 
 
 class IMUPreprocessor
 {
 private:
    // Member variables
-    std::atomic<bool> running_;   
+    std::atomic<bool> running_;
+    std::thread preprocessor_thread_;
 
     // Calibration state
     std::array<float, 3> ym_;
@@ -38,8 +40,12 @@ private:
     void apply_accel_calibration(float ax_raw, float ay_raw, float az_raw, float &ax_cal, float &ay_cal, float &az_cal);
     void apply_gyro_calibration(float gx_raw, float gy_raw, float gz_raw, float &gx_cal, float &gy_cal, float &gz_cal);
 
+    // Static thread function (same pattern as driver)
+    static void preprocessor_thread_func(IMUPreprocessor* preprocessor);
+
 public:
     IMUPreprocessor(); // Constructor
+    ~IMUPreprocessor(); // Destructor
 
     // Main processing loop
     void start();

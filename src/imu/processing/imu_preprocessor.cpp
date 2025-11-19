@@ -4,6 +4,7 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <iomanip>
 
 void IMUPreprocessor::apply_mag_calibration(float mx_raw, float my_raw, float mz_raw, float &mx_cal, float &my_cal, float &mz_cal)
 {
@@ -70,6 +71,7 @@ void IMUPreprocessor::apply_gyro_calibration(float gx_raw, float gy_raw, float g
 }
 
 IMUPreprocessor::IMUPreprocessor()
+    : running_(false)
 {
 
     std::array<float, 3> ym_ = {0.0f, 0.0f, 0.0f};
@@ -142,6 +144,12 @@ IMUPreprocessor::IMUPreprocessor()
         calibration_loaded_ = false;
     }
 }
+
+IMUPreprocessor::~IMUPreprocessor()
+{
+    stop();
+}
+
 void IMUPreprocessor::get_mag_calibration(std::array<float, 3> &bias, std::array<float, 9> &matrix)
 {
     bias = mag_bias_;
@@ -199,23 +207,62 @@ void IMUPreprocessor::get_mag_measurement(float &mx, float &my, float &mz)
 
 void IMUPreprocessor::start()
 {
-    running_.store(true);
-    while (running_.load())
+    if (running_.load())
     {
-        // get gyro, accel, mag measurements with calibration applied
-        float gx, gy, gz;
-        get_gyro_measurement(gx, gy, gz);
-        float ax, ay, az;
-        get_accel_measurement(ax, ay, az);
-        float mx, my, mz;
-        get_mag_measurement(mx, my, mz);
-        // Just sleep, processing is done on-demand in get_measurement functions
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::cerr << "WARNING: Preprocessor already running\n";
+        return;
     }
+
+    std::cout << "Starting IMU preprocessor thread...\n";
+    running_.store(true);
+
+    // Spawn preprocessor thread using static member function
+    preprocessor_thread_ = std::thread(preprocessor_thread_func, this);
+
+    std::cout << "✓ Preprocessor thread started\n";
 }
 
 void IMUPreprocessor::stop()
 {
-    // Implement stopping logic if needed
-   running_.store(false);
+    if (!running_.load())
+    {
+        return; // Already stopped
+    }
+
+    std::cout << "Stopping IMU preprocessor...\n";
+
+    // Signal thread to stop
+    running_.store(false);
+
+    // Wait for thread to finish
+    if (preprocessor_thread_.joinable())
+    {
+        preprocessor_thread_.join();
+    }
+
+    std::cout << "✓ Preprocessor stopped\n";
+}
+
+void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
+{
+    std::cout << "IMU Preprocessor thread running.\n";
+
+    while (preprocessor->running_.load())
+    {
+        // get gyro, accel, mag measurements with calibration applied
+        float gx, gy, gz;
+        preprocessor->get_gyro_measurement(gx, gy, gz);
+        float ax, ay, az;
+        preprocessor->get_accel_measurement(ax, ay, az);
+        float mx, my, mz;
+        preprocessor->get_mag_measurement(mx, my, mz);
+
+        std::cout << std::fixed << std::setprecision(2)
+                  << "A(" << ax << "," << ay << "," << az << ") "
+                  << "G(" << gx << "," << gy << "," << gz << ") "
+                  << "M(" << mx << "," << my << "," << mz << ")\n";
+
+        // Just sleep, processing is done on-demand in get_measurement functions
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
 }
