@@ -97,21 +97,16 @@ int main()
     std::signal(SIGTERM, signal_handler);
 
     IMUPreprocessor imu_preprocessor;
+    LSM9DS0Driver imu_driver("/dev/i2c-7");
 
     try
     {
-        LSM9DS0Driver imu_driver("/dev/i2c-7");
-        std::thread imu_driver_thread(&LSM9DS0Driver::start, &imu_driver);
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << "ERROR: " << e.what() << "\n";
-        return 1;
-    }
+        // Start the IMU driver
+        imu_driver.start();
+       
+        // Start the IMU preprocessor
+        imu_preprocessor.start();
 
-    try
-    {
-        std::thread preprocessor_thread(&IMUPreprocessor::start, &imu_preprocessor);
     }
     catch (const std::exception &e)
     {

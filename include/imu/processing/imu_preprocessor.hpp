@@ -5,6 +5,9 @@
 class IMUPreprocessor
 {
 private:
+   // Member variables
+    std::atomic<bool> running_;   
+
     // Calibration state
     std::array<float, 3> ym_;
     std::array<float, 3> ya_;
@@ -38,6 +41,9 @@ public:
 
     // Main processing loop
     void start();
+
+    // Stop processing loop
+    void stop();
 
     // Load magnetometer calibration parameters
     void get_mag_calibration(std::array<float, 3> &bias, std::array<float, 9> &matrix);

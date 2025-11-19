@@ -199,9 +199,23 @@ void IMUPreprocessor::get_mag_measurement(float &mx, float &my, float &mz)
 
 void IMUPreprocessor::start()
 {
-    while (true)
+    running_.store(true);
+    while (running_.load())
     {
+        // get gyro, accel, mag measurements with calibration applied
+        float gx, gy, gz;
+        get_gyro_measurement(gx, gy, gz);
+        float ax, ay, az;
+        get_accel_measurement(ax, ay, az);
+        float mx, my, mz;
+        get_mag_measurement(mx, my, mz);
         // Just sleep, processing is done on-demand in get_measurement functions
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
+}
+
+void IMUPreprocessor::stop()
+{
+    // Implement stopping logic if needed
+   running_.store(false);
 }
