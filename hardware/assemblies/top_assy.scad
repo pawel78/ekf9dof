@@ -91,6 +91,12 @@ module cam_hat_fixture(){
 );
 }
 
+use <../models/orin_dev_board_env.scad>
+
+module orin_dev_board(){
+    jetson_orin_nano_dev();
+}
+
 module top_assy(){
     rotate([0,180,0])
         translate([-103,0,0])
@@ -107,6 +113,9 @@ module top_assy(){
     rotate([0,180,-90]) 
         translate([-47,47.5,32])
             cam_hat_fixture();
+    rotate([0,0,0]) 
+        translate([0,-90,-6.25])
+            orin_dev_board();
 }
 
 // render
