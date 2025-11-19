@@ -24,6 +24,7 @@ set(LIB_SOURCES
     src/imu/drivers/lsm9ds0.cpp
     src/imu/drivers/lsm9ds0_driver.cpp
     src/common/config_loader.cpp
+    src/imu/processing/imu_preprocessor.cpp
 )
 
 # Create the main executable
@@ -37,16 +38,6 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC 
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-
-# Calibration tool (disabled - not needed)
-# add_executable(calibrate_mag
-#     ${LIB_SOURCES}
-#     src/tools/calibrate_mag.cpp
-# )
-# target_include_directories(calibrate_mag
-#     PUBLIC 
-#         ${CMAKE_CURRENT_SOURCE_DIR}/include
-# )
 
 # Enable testing
 enable_testing()

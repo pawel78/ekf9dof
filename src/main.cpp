@@ -4,7 +4,8 @@
 #include <iomanip>
 #include <atomic>
 #include <csignal>
-#include "imu/messages/imu_data.hpp"  // Messages + channel types in imu namespace
+#include "imu/messages/imu_data.hpp" // Messages + channel types in imu namespace
+#include "imu/processing/imu_preprocessor.hpp"
 
 // Note: Driver include only in main() for instantiation
 #include "imu/drivers/lsm9ds0_driver.hpp"
@@ -12,8 +13,10 @@
 // Global flag for signal handling
 std::atomic<bool> g_running{true};
 
-void signal_handler(int signal) {
-    if (signal == SIGINT || signal == SIGTERM) {
+void signal_handler(int signal)
+{
+    if (signal == SIGINT || signal == SIGTERM)
+    {
         std::cout << "\nShutdown signal received. Stopping...\n";
         g_running.store(false);
     }
@@ -21,26 +24,30 @@ void signal_handler(int signal) {
 
 /**
  * @brief Example consumer - uses global channel directly, no driver knowledge
- * 
+ *
  * This function reads from the global gyro channel.
  * It has ZERO knowledge of drivers, hardware, or I2C.
  */
-void consume_gyro_data() {
+void consume_gyro_data()
+{
     std::cout << "Gyro consumer started (reading from global channel)...\n";
-    
+
     int count = 0;
-    while (g_running.load() && count < 1000) {
+    while (g_running.load() && count < 1000)
+    {
         imu::messages::raw_gyro_msg_t gyro_msg;
-        
-        if (imu::channels::raw_gyro.try_receive(gyro_msg)) {
-            if (count % 200 == 0) {  // Print every 200 samples
-                std::cout << "Gyro: x=" << gyro_msg.x 
-                         << " y=" << gyro_msg.y 
-                         << " z=" << gyro_msg.z << " rad/s\n";
+
+        if (imu::channels::raw_gyro.try_receive(gyro_msg))
+        {
+            if (count % 200 == 0)
+            { // Print every 200 samples
+                std::cout << "Gyro: x=" << gyro_msg.x
+                          << " y=" << gyro_msg.y
+                          << " z=" << gyro_msg.z << " rad/s\n";
             }
             count++;
         }
-        
+
         std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
 }
@@ -48,58 +55,66 @@ void consume_gyro_data() {
 /**
  * @brief Another consumer - uses global channels directly
  */
-void consume_all_sensors() {
+void consume_all_sensors()
+{
     std::cout << "Multi-sensor consumer started...\n";
-    
+
     int sample_count = 0;
     imu::messages::raw_accel_msg_t accel{0, 0, 0, 0};
     imu::messages::raw_gyro_msg_t gyro{0, 0, 0, 0};
     imu::messages::raw_mag_msg_t mag{0, 0, 0, 0};
-    
-    while (g_running.load()) {
+
+    while (g_running.load())
+    {
         bool have_data = false;
-        
-        if (imu::channels::raw_accel.try_receive(accel)) { have_data = true; sample_count++; }
-        if (imu::channels::raw_gyro.try_receive(gyro)) have_data = true;
-        if (imu::channels::raw_mag.try_receive(mag)) have_data = true;
-        
-        if (have_data && sample_count % 200 == 0) {
-            std::cout << std::fixed << std::setprecision(2)
-                     << "A(" << accel.x << "," << accel.y << "," << accel.z << ") "
-                     << "G(" << gyro.x << "," << gyro.y << "," << gyro.z << ") "
-                     << "M(" << mag.x << "," << mag.y << "," << mag.z << ")\n";
+
+        if (imu::channels::raw_accel.try_receive(accel))
+        {
+            have_data = true;
+            sample_count++;
         }
-        
+        if (imu::channels::raw_gyro.try_receive(gyro))
+            have_data = true;
+        if (imu::channels::raw_mag.try_receive(mag))
+            have_data = true;
+
+        if (have_data && sample_count % 200 == 0)
+        {
+            std::cout << std::fixed << std::setprecision(2)
+                      << "A(" << accel.x << "," << accel.y << "," << accel.z << ") "
+                      << "G(" << gyro.x << "," << gyro.y << "," << gyro.z << ") "
+                      << "M(" << mag.x << "," << mag.y << "," << mag.z << ")\n";
+        }
+
         std::this_thread::sleep_for(std::chrono::microseconds(100));
     }
 }
 
-int main() {
+int main()
+{
     // Set up signal handlers for graceful shutdown
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
 
-    try {
-        // Create driver (ONLY place that knows about LSM9DS0)
+    IMUPreprocessor imu_preprocessor;
+
+    try
+    {
         LSM9DS0Driver imu_driver("/dev/i2c-7");
-        
-        // Start the driver
-        imu_driver.start();
-        
-        // Consumers use global channels - no driver references needed!
-        // Consumer only needs: #include "imu/messages/imu_data.hpp"
-        
-        // Option 1: Single sensor consumer
-        // consume_gyro_data();
-        
-        // Option 2: Multi-sensor consumer  
-        consume_all_sensors();
-        
-        std::cout << "\nShutting down...\n";
-        imu_driver.stop();
-        std::cout << "Shutdown complete\n";
-        
-    } catch (const std::exception& e) {
+        std::thread imu_driver_thread(&LSM9DS0Driver::start, &imu_driver);
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "ERROR: " << e.what() << "\n";
+        return 1;
+    }
+
+    try
+    {
+        std::thread preprocessor_thread(&IMUPreprocessor::start, &imu_preprocessor);
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << "ERROR: " << e.what() << "\n";
         return 1;
     }
