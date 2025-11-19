@@ -1,9 +1,11 @@
 // assemblies/orin_stereo_fixture.scad
 use <../models/slot_fixture.scad>
+use <../models/adafruit_lsm9ds0_mount.scad> // for hole pattern
 
 pcb = [103, 0, 6.5];
 
 module orin_stereo_fixture(){
+    difference(){
   // Board fixture
   slot_fixture(
     part=pcb,
@@ -11,11 +13,17 @@ module orin_stereo_fixture(){
     base_thk=5,
     depth=76,
     rail_w=5,
-    rail_h=15,
+    rail_h_left =75,
+    rail_h_right = 15,
     slot_w=6,
     tol=0.2,
     slot_pad=3
   );
+    // lsm9ds0 mounting hole pattern
+    rotate( [0, 90, 0])
+        translate([-35, -32, 0])
+            chassis_mounting_pattern(wall_thickness = 6, hole_d = 2.65);
+    }
 }
 
 // assemblies/orin_stereo_fixture.scad
@@ -101,21 +109,21 @@ module top_assy(){
     rotate([0,180,0])
         translate([-103,0,0])
             orin_stereo_fixture();
-    rotate([0,180,90])
-        translate([-h, -90, d+3])
-            imager_pcb();
+//    rotate([0,180,90])
+//        translate([-h, -90, d+3])
+//            imager_pcb();
     rotate([0,180,-90])
         translate([h,22,d])
             imager_bracket();
-    rotate([0,180,0])
-        translate([-47.5,-47,40])
-            cam_hat();
+//    rotate([0,180,0])
+//        translate([-47.5,-47,40])
+//            cam_hat();
     rotate([0,180,-90]) 
         translate([-47,47.5,32])
             cam_hat_fixture();
-    rotate([0,0,0]) 
-        translate([0,-90,-6.25])
-            orin_dev_board();
+//    rotate([0,0,0]) 
+//        translate([0,-90,-6.25])
+//            orin_dev_board();
 }
 
 // render

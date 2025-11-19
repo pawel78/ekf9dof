@@ -7,7 +7,8 @@ module slot_fixture(
     base_thk  = 5,              // base plate thickness
     depth     = 25,             // fixture depth along +Z
     rail_w    = 5,              // side rail width (X)
-    rail_h    = 15,             // side rail height (Y); defaults to max(15, T+9)
+    rail_h_left  = 15,             // side rail height (Y); defaults to max(15, T+9)
+    rail_h_right = 15,             // side rail height (Y); defaults to max(15, T+9)
     slot_w    = 6,              // slot opening height (X before rotate)
     tol       = 0.2,            // clearance on slot opening and thickness
     slot_pad  = 3,              // distance of each slot from left/right X edges
@@ -17,8 +18,9 @@ module slot_fixture(
     W = part[1];
     T = part[2];
 
-    RH = is_undef(rail_h) ? max(15, T + 9) : rail_h;       // sensible default
-    ext = RH + tol;                                         // extrude a touch longer to ensure clean cuts
+    RH_left = is_undef(rail_h_left) ? max(15, T + 9) : rail_h_left;       // sensible default
+    RH_right = is_undef(rail_h_right) ? max(15, T + 9) : rail_h_right;       // sensible default
+    ext = RH_left + tol;                                         // extrude a touch longer to ensure clean cuts
 
     module base_plate_and_rails(){
         // --- Base plate (rear bumper behind PCB along +Z) ---
@@ -29,11 +31,11 @@ module slot_fixture(
         // --- Side rails (two verticals near the top edge of PCB) ---
         color(body_col){
             // Left rail
-            translate([-wall, W - RH, -wall])
-                cube([rail_w, RH, depth], center=false);
+            translate([-wall, W - RH_left, -wall])
+                cube([rail_w, RH_left, depth], center=false);
             // Right rail
-            translate([L + wall - rail_w, W - RH, -wall])
-                cube([rail_w, RH, depth], center=false);
+            translate([L + wall - rail_w, W - RH_right, -wall])
+                cube([rail_w, RH_right, depth], center=false);
         }
     }
     // --- Dual slide slots (hollows) extruded along +Y ---
