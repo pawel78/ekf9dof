@@ -21,7 +21,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 # Common library source files (excluding main executables)
 set(LIB_SOURCES
     src/common/i2c_device.cpp
-    src/imu/drivers/lsm9ds0.cpp
     src/imu/drivers/lsm9ds0_driver.cpp
     src/common/config_loader.cpp
     src/imu/processing/imu_preprocessor.cpp
