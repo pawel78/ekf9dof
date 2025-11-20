@@ -105,7 +105,7 @@ int main()
         imu_driver.start();
        
         // Start the IMU preprocessor (spawns internal thread)
-        imu_preprocessor.start();
+        // imu_preprocessor.start();
 
         // Wait for shutdown signal
         while (g_running.load())
@@ -115,7 +115,7 @@ int main()
 
         // Cleanup
         std::cout << "\nShutting down...\n";
-        imu_preprocessor.stop();
+        // imu_preprocessor.stop();
         imu_driver.stop();
         std::cout << "Shutdown complete\n";
     }
