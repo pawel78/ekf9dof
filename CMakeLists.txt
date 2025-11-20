@@ -38,6 +38,13 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+# ============================================================================
+# Offline Tools
+# ============================================================================
+
+# bin2csv - Convert binary IMU logs to CSV format
+add_executable(bin2csv tools/bin2csv.cpp)
+
 # Enable testing
 enable_testing()
 add_subdirectory(tests)
@@ -48,7 +55,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples)
 endif()
 
 # Installation rules
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME} bin2csv
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib

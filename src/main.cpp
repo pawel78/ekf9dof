@@ -98,10 +98,19 @@ int main(int argc, char* argv[])
 
     // Check for debug flag
     bool enable_debug = false;
+    bool enable_logging = false;
+    std::string log_filename = "imu_data.bin";
+    
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
         if (arg == "--debug" || arg == "-d") {
             enable_debug = true;
+        } else if (arg == "--log" || arg == "-l") {
+            enable_logging = true;
+            // Check if next argument is a filename
+            if (i + 1 < argc && argv[i + 1][0] != '-') {
+                log_filename = argv[++i];
+            }
         }
     }
 
@@ -118,6 +127,15 @@ int main(int argc, char* argv[])
             std::cout << "Debug mode enabled - sensor data will be displayed every 500ms\n";
             imu_driver.set_debug_output(true);
         }
+        
+        // Enable binary logging if requested
+        if (enable_logging) {
+            if (imu_driver.set_data_logging(true, log_filename)) {
+                std::cout << "Binary logging enabled at 200 Hz to: " << log_filename << "\n";
+            } else {
+                std::cerr << "WARNING: Failed to enable binary logging\n";
+            }
+        }
        
         // Start the IMU preprocessor (spawns internal thread)
         // imu_preprocessor.start();
@@ -131,6 +149,9 @@ int main(int argc, char* argv[])
         // Cleanup
         std::cout << "\nShutting down...\n";
         // imu_preprocessor.stop();
+        if (enable_logging) {
+            imu_driver.set_data_logging(false);
+        }
         imu_driver.stop();
         std::cout << "Shutdown complete\n";
     }

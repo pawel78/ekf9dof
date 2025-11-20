@@ -3,6 +3,9 @@
 #include <thread>
 #include <atomic>
 #include <memory>
+#include <fstream>
+#include <mutex>
+#include <string>
 #include "common/channel_types.hpp"
 #include "common/i2c_device.hpp"
 
@@ -66,6 +69,18 @@ public:
      * @param enable true to enable debug output, false to disable
      */
     void set_debug_output(bool enable) { debug_output_enabled_.store(enable); }
+
+    /**
+     * @brief Enable/disable binary data logging to file
+     * 
+     * When enabled, logs all sensor data at 200 Hz to a binary file.
+     * Binary format is efficient for high-speed data capture.
+     * 
+     * @param enable true to enable logging, false to disable
+     * @param filename path to the log file (default: "imu_data.bin")
+     * @return true if logging started successfully, false otherwise
+     */
+    bool set_data_logging(bool enable, const std::string& filename = "imu_data.bin");
 
 private:
     // ========================================================================
@@ -192,9 +207,19 @@ private:
                           float mx, float my, float mz,
                           float temp);
     
+    // Binary logging helper
+    void write_binary_log(uint64_t timestamp_ns,
+                          float ax, float ay, float az,
+                          float gx, float gy, float gz,
+                          float mx, float my, float mz,
+                          float temp);
+    
     // Member variables
     std::atomic<bool> running_;
     std::atomic<bool> debug_output_enabled_;
+    std::atomic<bool> logging_enabled_;
     std::thread driver_thread_;
     std::unique_ptr<I2CDevice> i2c_device_;
+    std::ofstream log_file_;
+    std::mutex log_mutex_;
 };

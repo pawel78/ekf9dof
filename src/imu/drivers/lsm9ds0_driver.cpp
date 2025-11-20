@@ -324,6 +324,15 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
                 last_debug_time = now;
             }
         }
+
+        // Binary logging at full rate (200 Hz)
+        if (driver->logging_enabled_.load()) {
+            driver->write_binary_log(latest_timestamp,
+                                     latest_ax, latest_ay, latest_az,
+                                     latest_gx, latest_gy, latest_gz,
+                                     latest_mx, latest_my, latest_mz,
+                                     latest_temp);
+        }
              
         // Sleep to maintain 200 Hz rate
         std::this_thread::sleep_for(sample_period);
@@ -344,6 +353,7 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
 LSM9DS0Driver::LSM9DS0Driver(const char* i2c_device_path)
     : running_(false)
     , debug_output_enabled_(false)
+    , logging_enabled_(false)
     , i2c_device_(std::make_unique<I2CDevice>(i2c_device_path))
 {
     std::cout << "Initializing LSM9DS0 IMU...\n";
@@ -361,6 +371,10 @@ LSM9DS0Driver::LSM9DS0Driver(const char* i2c_device_path)
 
 LSM9DS0Driver::~LSM9DS0Driver() {
     stop();
+    // Close log file if open
+    if (log_file_.is_open()) {
+        log_file_.close();
+    }
 }
 
 void LSM9DS0Driver::start() {
@@ -417,4 +431,74 @@ void LSM9DS0Driver::print_debug_data(uint64_t timestamp_ns,
               << std::setw(6) << std::setprecision(3) << mz << ") ";
     std::cout << "T(" << std::setw(5) << std::setprecision(1) << temp << "°C)";
     std::cout << std::endl;
+}
+
+// ============================================================================
+// Binary Logging
+// ============================================================================
+
+bool LSM9DS0Driver::set_data_logging(bool enable, const std::string& filename) {
+    std::lock_guard<std::mutex> lock(log_mutex_);
+    
+    if (enable) {
+        if (log_file_.is_open()) {
+            std::cerr << "WARNING: Log file already open\n";
+            return false;
+        }
+        
+        log_file_.open(filename, std::ios::binary | std::ios::out);
+        if (!log_file_.is_open()) {
+            std::cerr << "ERROR: Failed to open log file: " << filename << "\n";
+            return false;
+        }
+        
+        // Write binary file header
+        // Magic number to identify file format (0x494D5539 = "IMU9")
+        uint32_t magic = 0x494D5539;
+        uint32_t version = 1;
+        uint32_t sample_size = sizeof(uint64_t) + 10 * sizeof(float); // timestamp + 10 floats
+        
+        log_file_.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
+        log_file_.write(reinterpret_cast<const char*>(&version), sizeof(version));
+        log_file_.write(reinterpret_cast<const char*>(&sample_size), sizeof(sample_size));
+        log_file_.flush();
+        
+        logging_enabled_.store(true);
+        std::cout << "✓ Binary logging enabled: " << filename << "\n";
+        return true;
+    } else {
+        logging_enabled_.store(false);
+        if (log_file_.is_open()) {
+            log_file_.close();
+            std::cout << "✓ Binary logging disabled\n";
+        }
+        return true;
+    }
+}
+
+void LSM9DS0Driver::write_binary_log(uint64_t timestamp_ns,
+                                       float ax, float ay, float az,
+                                       float gx, float gy, float gz,
+                                       float mx, float my, float mz,
+                                       float temp) {
+    std::lock_guard<std::mutex> lock(log_mutex_);
+    
+    if (!log_file_.is_open()) {
+        return;
+    }
+    
+    // Write timestamp (8 bytes)
+    log_file_.write(reinterpret_cast<const char*>(&timestamp_ns), sizeof(timestamp_ns));
+    
+    // Write sensor data (10 floats = 40 bytes)
+    log_file_.write(reinterpret_cast<const char*>(&ax), sizeof(float));
+    log_file_.write(reinterpret_cast<const char*>(&ay), sizeof(float));
+    log_file_.write(reinterpret_cast<const char*>(&az), sizeof(float));
+    log_file_.write(reinterpret_cast<const char*>(&gx), sizeof(float));
+    log_file_.write(reinterpret_cast<const char*>(&gy), sizeof(float));
+    log_file_.write(reinterpret_cast<const char*>(&gz), sizeof(float));
+    log_file_.write(reinterpret_cast<const char*>(&mx), sizeof(float));
+    log_file_.write(reinterpret_cast<const char*>(&my), sizeof(float));
+    log_file_.write(reinterpret_cast<const char*>(&mz), sizeof(float));
+    log_file_.write(reinterpret_cast<const char*>(&temp), sizeof(float));
 }
