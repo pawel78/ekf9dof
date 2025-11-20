@@ -1,9 +1,13 @@
 #include "imu/drivers/lsm9ds0_driver.hpp"
 #include <iostream>
+#include <iomanip>
+#include <chrono>
+#include <thread>
 #include <stdexcept>
 
 LSM9DS0Driver::LSM9DS0Driver(const char* i2c_device_path)
     : running_(false)
+    , debug_output_enabled_(false)
     , i2c_device_(std::make_unique<I2CDevice>(i2c_device_path))
 {
     std::cout << "Initializing LSM9DS0 IMU...\n";
@@ -54,4 +58,27 @@ void LSM9DS0Driver::stop() {
     }
 
     std::cout << "✓ Driver stopped\n";
+}
+
+void LSM9DS0Driver::print_debug_data(uint64_t timestamp_ns,
+                                      float ax, float ay, float az,
+                                      float gx, float gy, float gz,
+                                      float mx, float my, float mz,
+                                      float temp) {
+    // Convert nanoseconds to seconds with fractional part
+    double timestamp_sec = static_cast<double>(timestamp_ns) / 1e9;
+    
+    std::cout << std::fixed << std::setprecision(3);
+    std::cout << "[" << timestamp_sec << "s] ";
+    std::cout << "A(" << std::setw(6) << std::setprecision(3) << ax << "," 
+              << std::setw(6) << std::setprecision(3) << ay << "," 
+              << std::setw(6) << std::setprecision(3) << az << ") ";
+    std::cout << "G(" << std::setw(7) << std::setprecision(2) << gx << "," 
+              << std::setw(7) << std::setprecision(2) << gy << "," 
+              << std::setw(7) << std::setprecision(2) << gz << ") ";
+    std::cout << "M(" << std::setw(6) << std::setprecision(3) << mx << "," 
+              << std::setw(6) << std::setprecision(3) << my << "," 
+              << std::setw(6) << std::setprecision(3) << mz << ") ";
+    std::cout << "T(" << std::setw(5) << std::setprecision(1) << temp << "°C)";
+    std::cout << std::endl;
 }

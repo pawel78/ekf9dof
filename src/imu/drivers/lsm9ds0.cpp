@@ -166,11 +166,21 @@ uint64_t LSM9DS0Driver::get_timestamp_ns() {
 
 void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
     constexpr auto sample_period = std::chrono::milliseconds(5); // 200 Hz
+    constexpr auto debug_period = std::chrono::milliseconds(500); // 2 Hz for debug output
     
     int error_count = 0;
     int sample_count = 0;
     int accel_sent = 0, gyro_sent = 0, mag_sent = 0, temp_sent = 0;
     bool first_sample = true;
+    
+    auto last_debug_time = std::chrono::steady_clock::now();
+    
+    // Variables to store latest sensor readings for debug output
+    float latest_ax = 0, latest_ay = 0, latest_az = 0;
+    float latest_gx = 0, latest_gy = 0, latest_gz = 0;
+    float latest_mx = 0, latest_my = 0, latest_mz = 0;
+    float latest_temp = 0;
+    uint64_t latest_timestamp = 0;
     
     std::cout << "Driver thread: Starting sensor reads...\n" << std::flush;
     
@@ -186,6 +196,12 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
             float ax = raw_to_g(ax_raw);
             float ay = raw_to_g(ay_raw);
             float az = raw_to_g(az_raw);
+            
+            // Store for debug output
+            latest_ax = ax;
+            latest_ay = ay;
+            latest_az = az;
+            latest_timestamp = timestamp;
             
             imu::messages::raw_accel_msg_t accel_msg{timestamp, ax, ay, az};
             if (!imu::channels::raw_accel.send(accel_msg)) {
@@ -215,6 +231,11 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
             float gy = gy_dps * deg_to_rad;
             float gz = gz_dps * deg_to_rad;
             
+            // Store for debug output
+            latest_gx = gx_dps;
+            latest_gy = gy_dps;
+            latest_gz = gz_dps;
+            
             imu::messages::raw_gyro_msg_t gyro_msg{timestamp, gx, gy, gz};
             if (!imu::channels::raw_gyro.send(gyro_msg)) {
                 std::cerr << "ERROR: Gyro channel closed\n" << std::flush;
@@ -238,6 +259,11 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
             float my = raw_to_gauss(my_raw);
             float mz = raw_to_gauss(mz_raw);
             
+            // Store for debug output
+            latest_mx = mx;
+            latest_my = my;
+            latest_mz = mz;
+            
             imu::messages::raw_mag_msg_t mag_msg{timestamp, mx, my, mz};
             if (!imu::channels::raw_mag.send(mag_msg)) {
                 std::cerr << "ERROR: Mag channel closed\n" << std::flush;
@@ -258,6 +284,9 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
         int16_t temp_raw;
         if (driver->read_temperature(temp_raw)) {
             float temp_c = raw_to_celsius(temp_raw);
+            
+            // Store for debug output
+            latest_temp = temp_c;
             
             imu::messages::raw_temp_msg_t temp_msg{timestamp, temp_c};
             if (!imu::channels::raw_temp.send(temp_msg)) {
@@ -282,6 +311,19 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver* driver) {
         first_sample = false;
         sample_count++;
 
+        // Debug output at slower rate (500ms intervals)
+        if (driver->debug_output_enabled_.load()) {
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_debug_time);
+            if (elapsed >= debug_period) {
+                driver->print_debug_data(latest_timestamp, 
+                                        latest_ax, latest_ay, latest_az,
+                                        latest_gx, latest_gy, latest_gz,
+                                        latest_mx, latest_my, latest_mz,
+                                        latest_temp);
+                last_debug_time = now;
+            }
+        }
              
         // Sleep to maintain 200 Hz rate
         std::this_thread::sleep_for(sample_period);

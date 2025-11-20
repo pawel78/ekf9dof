@@ -90,11 +90,20 @@ void consume_all_sensors()
     }
 }
 
-int main()
+int main(int argc, char* argv[])
 {
     // Set up signal handlers for graceful shutdown
     std::signal(SIGINT, signal_handler);
     std::signal(SIGTERM, signal_handler);
+
+    // Check for debug flag
+    bool enable_debug = false;
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "--debug" || arg == "-d") {
+            enable_debug = true;
+        }
+    }
 
     try
     {
@@ -103,6 +112,12 @@ int main()
 
         // Start the IMU driver (spawns internal thread)
         imu_driver.start();
+        
+        // Enable debug output if requested
+        if (enable_debug) {
+            std::cout << "Debug mode enabled - sensor data will be displayed every 500ms\n";
+            imu_driver.set_debug_output(true);
+        }
        
         // Start the IMU preprocessor (spawns internal thread)
         // imu_preprocessor.start();

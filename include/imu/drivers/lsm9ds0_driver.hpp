@@ -57,6 +57,16 @@ public:
      */
     bool is_running() const { return running_.load(); }
 
+    /**
+     * @brief Enable/disable debug output to console
+     * 
+     * When enabled, displays sensor data with timestamps every 500ms.
+     * Default is disabled for optimal performance.
+     * 
+     * @param enable true to enable debug output, false to disable
+     */
+    void set_debug_output(bool enable) { debug_output_enabled_.store(enable); }
+
 private:
     // ========================================================================
     // LSM9DS0 Register Map - Hardware constants
@@ -175,8 +185,16 @@ private:
     // Timestamp helper
     static uint64_t get_timestamp_ns();
     
+    // Debug output helper
+    void print_debug_data(uint64_t timestamp_ns, 
+                          float ax, float ay, float az,
+                          float gx, float gy, float gz,
+                          float mx, float my, float mz,
+                          float temp);
+    
     // Member variables
     std::atomic<bool> running_;
+    std::atomic<bool> debug_output_enabled_;
     std::thread driver_thread_;
     std::unique_ptr<I2CDevice> i2c_device_;
 };
