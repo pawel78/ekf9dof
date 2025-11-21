@@ -6,6 +6,7 @@
 #include <csignal>
 #include "imu/messages/imu_data.hpp" // Messages + channel types in imu namespace
 #include "imu/processing/imu_preprocessor.hpp"
+#include "common/custom_time_methods.hpp"
 
 // Note: Driver include only in main() for instantiation
 #include "imu/drivers/lsm9ds0_driver.hpp"
@@ -99,7 +100,8 @@ int main(int argc, char* argv[])
     // Check for debug flag
     bool enable_debug = false;
     bool enable_logging = false;
-    std::string log_filename = "imu_data.bin";
+    std::string log_file_timestamp = get_timestamp_filename();
+    std::string log_filename = "imu_driver_data_" + log_file_timestamp + ".bin";
     
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
