@@ -6,25 +6,25 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-namespace ekf9dof {
+namespace quat {
 
-QuaternionImpl::QuaternionImpl() : data_{0.0, 0.0, 0.0, 1.0} {
-    // Identity quaternion [0, 0, 0, 1]
+quat::quat() : data_{0.0, 0.0, 0.0, 1.0} {
+    // Identity quaternion [0, 0, 0, 1] - scalar last
 }
 
-QuaternionImpl::QuaternionImpl(double x, double y, double z, double w) 
+quat::quat(double x, double y, double z, double w) 
     : data_{x, y, z, w} {
     normalize();
 }
 
-double QuaternionImpl::norm() const {
+double quat::norm() const {
     return std::sqrt(data_[0] * data_[0] + 
                      data_[1] * data_[1] + 
                      data_[2] * data_[2] + 
                      data_[3] * data_[3]);
 }
 
-void QuaternionImpl::normalize() {
+void quat::normalize() {
     const double n = norm();
     if (n < 1e-12) {
         // If norm is too small, reset to identity
@@ -42,23 +42,24 @@ void QuaternionImpl::normalize() {
     data_[3] *= inv_n;
 }
 
-QuaternionImpl QuaternionImpl::normalized() const {
-    QuaternionImpl result(*this);
+quat quat::normalized() const {
+    quat result(*this);
     result.normalize();
     return result;
 }
 
-QuaternionImpl QuaternionImpl::conjugate() const {
-    return QuaternionImpl(-data_[0], -data_[1], -data_[2], data_[3]);
+quat quat::conjugate() const {
+    return quat(-data_[0], -data_[1], -data_[2], data_[3]);
 }
 
-QuaternionImpl QuaternionImpl::inverse() const {
+quat quat::inverse() const {
     // For unit quaternions, inverse equals conjugate
     return conjugate();
 }
 
-QuaternionImpl QuaternionImpl::operator*(const QuaternionImpl& other) const {
+quat quat::operator*(const quat& other) const {
     // Hamilton product: q1 * q2
+    // Frame composition: c_q_a = c_q_b * b_q_a
     const double x1 = data_[0];
     const double y1 = data_[1];
     const double z1 = data_[2];
@@ -74,10 +75,10 @@ QuaternionImpl QuaternionImpl::operator*(const QuaternionImpl& other) const {
     const double z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2;
     const double w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2;
     
-    return QuaternionImpl(x, y, z, w);
+    return quat(x, y, z, w);
 }
 
-std::array<std::array<double, 3>, 3> QuaternionImpl::to_rotation_matrix() const {
+std::array<std::array<double, 3>, 3> quat::to_rotation_matrix() const {
     const double qx = data_[0];
     const double qy = data_[1];
     const double qz = data_[2];
@@ -115,7 +116,7 @@ std::array<std::array<double, 3>, 3> QuaternionImpl::to_rotation_matrix() const 
     return R;
 }
 
-std::array<double, 3> QuaternionImpl::to_euler() const {
+std::array<double, 3> quat::to_euler() const {
     // Convert quaternion to 321 Euler angles (roll, pitch, yaw)
     
     const double qx = data_[0];
@@ -149,4 +150,4 @@ std::array<double, 3> QuaternionImpl::to_euler() const {
     return {roll, pitch, yaw};
 }
 
-} // namespace ekf9dof
+} // namespace quat

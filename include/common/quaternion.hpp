@@ -1,46 +1,58 @@
 #pragma once
 
 #include <cmath>
-#include <stdexcept>
 #include <array>
 
-namespace ekf9dof {
-
 /**
- * @brief Quaternion class for 3D rotations following NED frame conventions
+ * @file quaternion.hpp
+ * @brief Quaternion math library for navigation and attitude estimation
  * 
  * This implementation follows:
  * - Hamilton convention: [x, y, z, w] with scalar component last
  * - 321 Euler angle sequence (yaw-pitch-roll / ZYX)
  * - NED (North-East-Down) navigation frame
- * - FRD (Forward-Right-Down) body frame
+ * - Frame-explicit operations for navigation purposes
+ * 
+ * Naming convention: b_q_a represents a quaternion that transforms
+ * vectors from frame 'a' to frame 'b', i.e., v_b = b_q_a * v_a
+ */
+
+namespace quat {
+
+/**
+ * @brief Quaternion class for 3D rotations in navigation applications
  * 
  * All quaternions are unit quaternions (norm = 1) representing rotations in SO(3).
+ * 
+ * Frame convention: For a quaternion b_q_a:
+ * - Transforms vectors from frame 'a' to frame 'b'
+ * - Usage: v_b = b_q_a.rotate(v_a)
+ * - Example: n_q_b transforms body frame to navigation frame
  */
-class QuaternionImpl {
+class quat {
 public:
     /**
      * @brief Default constructor - creates identity quaternion [0, 0, 0, 1]
      */
-    QuaternionImpl();
+    quat();
 
     /**
      * @brief Construct quaternion from components
      * @param x X component (imaginary)
      * @param y Y component (imaginary)
      * @param z Z component (imaginary)
-     * @param w W component (scalar/real)
+     * @param w W component (scalar/real) - LAST
      * 
      * Note: Quaternion will be automatically normalized
      */
-    QuaternionImpl(double x, double y, double z, double w);
+    quat(double x, double y, double z, double w);
 
     /**
      * @brief Construct from 4D array [x, y, z, w]
-     * @param vec Array of 4 doubles
+     * @param vec Array of 4 doubles with scalar last
      */
     template<typename VectorType>
-    explicit QuaternionImpl(const VectorType& vec);
+    explicit quat(const VectorType& vec);
 
     // Accessors
     double x() const { return data_[0]; }
@@ -49,13 +61,12 @@ public:
     double w() const { return data_[3]; }
 
     /**
-     * @brief Access component by index
-     * @param i Index (0=x, 1=y, 2=z, 3=w)
+     * @brief Access component by index (0=x, 1=y, 2=z, 3=w)
      */
     double operator()(int i) const { return data_[i]; }
 
     /**
-     * @brief Get coefficients as array
+     * @brief Get coefficients as array [x, y, z, w]
      */
     const std::array<double, 4>& coeffs() const { return data_; }
 
@@ -72,26 +83,27 @@ public:
     /**
      * @brief Get normalized copy of quaternion
      */
-    QuaternionImpl normalized() const;
+    quat normalized() const;
 
     /**
      * @brief Quaternion conjugate (inverse rotation for unit quaternions)
      * 
-     * For unit quaternion q = [x, y, z, w], conjugate is [-x, -y, -z, w]
+     * For b_q_a, conjugate gives a_q_b (inverse transformation)
      */
-    QuaternionImpl conjugate() const;
+    quat conjugate() const;
 
     /**
      * @brief Quaternion inverse (same as conjugate for unit quaternions)
      */
-    QuaternionImpl inverse() const;
+    quat inverse() const;
 
     /**
      * @brief Rotate a 3D vector using this quaternion
      * 
      * Performs the rotation: v' = q * v * q^(-1)
+     * For b_q_a: v_b = b_q_a.rotate(v_a)
      * 
-     * @param v 3D vector to rotate (as array-like object with [](0), [](1), [](2))
+     * @param v 3D vector to rotate as array [x, y, z]
      * @return Rotated vector as array [x, y, z]
      */
     template<typename VectorType>
@@ -100,7 +112,7 @@ public:
     /**
      * @brief Rotate a vector using the inverse of this quaternion
      * 
-     * Performs: v' = q^(-1) * v * q
+     * For b_q_a: v_a = b_q_a.rotate_inverse(v_b)
      * Equivalent to: conjugate().rotate(v)
      * 
      * @param v 3D vector to rotate
@@ -112,17 +124,16 @@ public:
     /**
      * @brief Quaternion multiplication (composition of rotations)
      * 
-     * q1 * q2 represents: first rotate by q2, then by q1
+     * Frame-explicit composition: c_q_a = c_q_b * b_q_a
+     * This means: first rotate from a to b, then from b to c
      * 
-     * @param other Other quaternion
+     * @param other Other quaternion (right operand)
      * @return Product quaternion
      */
-    QuaternionImpl operator*(const QuaternionImpl& other) const;
+    quat operator*(const quat& other) const;
 
     /**
      * @brief Convert quaternion to 3x3 rotation matrix
-     * 
-     * Returns a 3x3 array representing the rotation matrix
      * 
      * @return 3x3 rotation matrix as nested array
      */
@@ -143,7 +154,7 @@ public:
     /**
      * @brief Create quaternion from Euler angles using 321 sequence
      * 
-     * @param euler Euler angles [roll, pitch, yaw] in radians (array-like with [](i))
+     * @param euler Euler angles [roll, pitch, yaw] in radians
      * @return Quaternion representing the rotation
      * 
      * Rotation sequence (applied in order):
@@ -154,31 +165,31 @@ public:
      * Resulting rotation matrix: R = Rx(φ) * Ry(θ) * Rz(ψ)
      */
     template<typename VectorType>
-    static QuaternionImpl from_euler(const VectorType& euler);
+    static quat from_euler(const VectorType& euler);
 
     /**
      * @brief Create quaternion from rotation matrix
      * 
-     * @param R 3x3 rotation matrix (nested array-like with [](i)[](j))
+     * @param R 3x3 rotation matrix (nested array)
      * @return Quaternion representing the rotation
      */
     template<typename MatrixType>
-    static QuaternionImpl from_rotation_matrix(const MatrixType& R);
+    static quat from_rotation_matrix(const MatrixType& R);
 
 private:
-    std::array<double, 4> data_;  // [x, y, z, w]
+    std::array<double, 4> data_;  // [x, y, z, w] - scalar LAST
 };
 
 // Template implementations
 
 template<typename VectorType>
-QuaternionImpl::QuaternionImpl(const VectorType& vec) 
+quat::quat(const VectorType& vec) 
     : data_{vec[0], vec[1], vec[2], vec[3]} {
     normalize();
 }
 
 template<typename VectorType>
-std::array<double, 3> QuaternionImpl::rotate(const VectorType& v) const {
+std::array<double, 3> quat::rotate(const VectorType& v) const {
     // Rotate vector using: v' = q * v * q^(-1)
     // Using the formula: v' = v + 2*w*(q_xyz × v) + 2*q_xyz × (q_xyz × v)
     
@@ -210,12 +221,12 @@ std::array<double, 3> QuaternionImpl::rotate(const VectorType& v) const {
 }
 
 template<typename VectorType>
-std::array<double, 3> QuaternionImpl::rotate_inverse(const VectorType& v) const {
+std::array<double, 3> quat::rotate_inverse(const VectorType& v) const {
     return conjugate().rotate(v);
 }
 
 template<typename VectorType>
-QuaternionImpl QuaternionImpl::from_euler(const VectorType& euler) {
+quat quat::from_euler(const VectorType& euler) {
     // 321 Euler angle sequence: yaw-pitch-roll (ZYX)
     // euler = [roll, pitch, yaw]
     // Rotations applied in order: Yaw (Z), then Pitch (Y), then Roll (X)
@@ -235,20 +246,16 @@ QuaternionImpl QuaternionImpl::from_euler(const VectorType& euler) {
     const double sy = std::sin(yaw * 0.5);
     
     // Quaternion product: qRoll * qPitch * qYaw
-    // qYaw = [0, 0, sin(yaw/2), cos(yaw/2)]
-    // qPitch = [0, sin(pitch/2), 0, cos(pitch/2)]
-    // qRoll = [sin(roll/2), 0, 0, cos(roll/2)]
-    
     const double x = sr * cp * cy + cr * sp * sy;
     const double y = cr * sp * cy - sr * cp * sy;
     const double z = cr * cp * sy + sr * sp * cy;
     const double w = cr * cp * cy - sr * sp * sy;
     
-    return QuaternionImpl(x, y, z, w);
+    return quat(x, y, z, w);
 }
 
 template<typename MatrixType>
-QuaternionImpl QuaternionImpl::from_rotation_matrix(const MatrixType& R) {
+quat quat::from_rotation_matrix(const MatrixType& R) {
     // Shepperd's method for numerical stability
     // Choose the largest diagonal element to avoid division by small numbers
     
@@ -286,7 +293,7 @@ QuaternionImpl QuaternionImpl::from_rotation_matrix(const MatrixType& R) {
         z = 0.25 * s;
     }
     
-    return QuaternionImpl(x, y, z, w);
+    return quat(x, y, z, w);
 }
 
-} // namespace ekf9dof
+} // namespace quat
