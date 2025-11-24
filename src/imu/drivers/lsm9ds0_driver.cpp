@@ -237,7 +237,7 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
             float gz = gz_dps * deg_to_rad;
 
             if (driver->logging_enabled_.load()) {
-                driver->write_gyro_log(timestamp, gx_dps, gy_dps, gz_dps);
+                driver->write_gyro_log(get_timestamp_ns(), gx_dps, gy_dps, gz_dps);
             }
 
             // Store for debug output
@@ -274,7 +274,6 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
         {
         case 0: // Even samples: read accelerometer
             int16_t ax_raw, ay_raw, az_raw;
-            timestamp = get_timestamp_ns();
             if (driver->read_accel(ax_raw, ay_raw, az_raw))
             {
                 float ax = raw_to_g(ax_raw);
@@ -288,7 +287,7 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
                 latest_timestamp = timestamp;
 
                 if (driver->logging_enabled_.load()) {
-                    driver->write_accel_log(timestamp, ax, ay, az);
+                    driver->write_accel_log(get_timestamp_ns(), ax, ay, az);
                 }
 
                 imu::messages::raw_accel_msg_t accel_msg{timestamp, ax, ay, az};
@@ -318,7 +317,6 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
         case 1: // Odd samples mod 3 == 1: read magnetometer
             // Read magnetometer
             int16_t mx_raw, my_raw, mz_raw;
-            timestamp = get_timestamp_ns();
 
             if (driver->read_mag(mx_raw, my_raw, mz_raw))
             {
@@ -327,7 +325,7 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
                 float mz = raw_to_gauss(mz_raw);
 
                 if (driver->logging_enabled_.load()) {
-                    driver->write_mag_log(timestamp, mx, my, mz);
+                    driver->write_mag_log(get_timestamp_ns(), mx, my, mz);
                 }
 
                 // Store for debug output
@@ -362,13 +360,12 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
         case 2:
             // Read temperature
             int16_t temp_raw;
-            timestamp = get_timestamp_ns();
             if (driver->read_temperature(temp_raw))
             {
                 float temp_c = raw_to_celsius(temp_raw);
 
                 if (driver->logging_enabled_.load()) {
-                    driver->write_temp_log(timestamp, temp_c);
+                    driver->write_temp_log(get_timestamp_ns(), temp_c);
                 }
 
                 // Store for debug output
@@ -426,6 +423,7 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
         }
 
         // Binary logging at full rate (200 Hz)
+        /*
         if (driver->logging_enabled_.load())
         {
             driver->write_binary_log(latest_timestamp,
@@ -434,7 +432,7 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
                                      latest_mx, latest_my, latest_mz,
                                      latest_temp);
         }
-
+        */
         // Sleep to maintain 200 Hz rate
         std::this_thread::sleep_for(sample_period);
     }
