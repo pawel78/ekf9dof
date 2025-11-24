@@ -46,6 +46,9 @@ target_include_directories(${PROJECT_NAME}
 # bin2csv - Convert binary IMU logs to CSV format
 add_executable(bin2csv tools/bin2csv.cpp)
 
+# sensor2csv - Convert per-sensor binary logs to CSV format
+add_executable(sensor2csv tools/sensor2csv.cpp)
+
 # Enable testing
 enable_testing()
 add_subdirectory(tests)
@@ -56,7 +59,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples)
 endif()
 
 # Installation rules
-install(TARGETS ${PROJECT_NAME} bin2csv
+install(TARGETS ${PROJECT_NAME} bin2csv sensor2csv
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
