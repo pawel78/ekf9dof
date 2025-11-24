@@ -1,4 +1,4 @@
-#include "common/quaternion.hpp"
+#include "common/Quat.hpp"
 #include <cmath>
 
 // For M_PI portability across compilers
@@ -6,23 +6,23 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-quat::quat() : data_{0.0, 0.0, 0.0, 1.0} {
+Quat::Quat() : data_{0.0, 0.0, 0.0, 1.0} {
     // Identity quaternion [0, 0, 0, 1] - scalar last
 }
 
-quat::quat(double x, double y, double z, double w) 
+Quat::Quat(double x, double y, double z, double w) 
     : data_{x, y, z, w} {
     normalize();
 }
 
-double quat::norm() const {
+double Quat::norm() const {
     return std::sqrt(data_[0] * data_[0] + 
                      data_[1] * data_[1] + 
                      data_[2] * data_[2] + 
                      data_[3] * data_[3]);
 }
 
-void quat::normalize() {
+void Quat::normalize() {
     const double n = norm();
     if (n < 1e-12) {
         // If norm is too small, reset to identity
@@ -40,22 +40,22 @@ void quat::normalize() {
     data_[3] *= inv_n;
 }
 
-quat quat::normalized() const {
-    quat result(*this);
+Quat Quat::normalized() const {
+    Quat result(*this);
     result.normalize();
     return result;
 }
 
-quat quat::conjugate() const {
-    return quat(-data_[0], -data_[1], -data_[2], data_[3]);
+Quat Quat::conjugate() const {
+    return Quat(-data_[0], -data_[1], -data_[2], data_[3]);
 }
 
-quat quat::inverse() const {
+Quat Quat::inverse() const {
     // For unit quaternions, inverse equals conjugate
     return conjugate();
 }
 
-quat quat::operator*(const quat& other) const {
+Quat Quat::operator*(const Quat& other) const {
     // Hamilton product: q1 * q2
     // Frame composition: c_q_a = c_q_b * b_q_a
     const double x1 = data_[0];
@@ -73,10 +73,10 @@ quat quat::operator*(const quat& other) const {
     const double z = w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2;
     const double w = w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2;
     
-    return quat(x, y, z, w);
+    return Quat(x, y, z, w);
 }
 
-std::array<std::array<double, 3>, 3> quat::to_rotation_matrix() const {
+std::array<std::array<double, 3>, 3> Quat::to_rotation_matrix() const {
     const double qx = data_[0];
     const double qy = data_[1];
     const double qz = data_[2];
@@ -114,7 +114,7 @@ std::array<std::array<double, 3>, 3> quat::to_rotation_matrix() const {
     return R;
 }
 
-std::array<double, 3> quat::to_euler() const {
+std::array<double, 3> Quat::to_euler() const {
     // Convert quaternion to 321 Euler angles (roll, pitch, yaw)
     
     const double qx = data_[0];

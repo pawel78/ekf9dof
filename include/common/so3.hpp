@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/quaternion.hpp"
+#include "common/Quat.hpp"
 
 /**
  * @file so3.hpp

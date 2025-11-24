@@ -4,7 +4,7 @@
 #include <array>
 
 /**
- * @file quaternion.hpp
+ * @file Quat.hpp
  * @brief Quaternion math library for navigation and attitude estimation
  * 
  * This implementation follows:
@@ -34,12 +34,12 @@
  * - transform(): Expresses the same physical vector in different coordinates
  * - NOT a rotation: The vector's physical direction doesn't change
  */
-class quat {
+class Quat {
 public:
     /**
      * @brief Default constructor - creates identity quaternion [0, 0, 0, 1]
      */
-    quat();
+    Quat();
 
     /**
      * @brief Construct quaternion from components
@@ -50,14 +50,14 @@ public:
      * 
      * Note: Quaternion will be automatically normalized
      */
-    quat(double x, double y, double z, double w);
+    Quat(double x, double y, double z, double w);
 
     /**
      * @brief Construct from 4D array [x, y, z, w]
      * @param vec Array of 4 doubles with scalar last
      */
     template<typename VectorType>
-    explicit quat(const VectorType& vec);
+    explicit Quat(const VectorType& vec);
 
     // Accessors
     double x() const { return data_[0]; }
@@ -88,19 +88,19 @@ public:
     /**
      * @brief Get normalized copy of quaternion
      */
-    quat normalized() const;
+    Quat normalized() const;
 
     /**
      * @brief Quaternion conjugate (inverse rotation for unit quaternions)
      * 
      * For b_q_a, conjugate gives a_q_b (inverse transformation)
      */
-    quat conjugate() const;
+    Quat conjugate() const;
 
     /**
      * @brief Quaternion inverse (same as conjugate for unit quaternions)
      */
-    quat inverse() const;
+    Quat inverse() const;
 
     /**
      * @brief Transform (express) a 3D vector from one frame to another
@@ -139,7 +139,7 @@ public:
      * @param other Other quaternion (right operand)
      * @return Product quaternion
      */
-    quat operator*(const quat& other) const;
+    Quat operator*(const Quat& other) const;
 
     /**
      * @brief Convert quaternion to 3x3 rotation matrix
@@ -174,7 +174,7 @@ public:
      * Resulting rotation matrix: R = Rx(φ) * Ry(θ) * Rz(ψ)
      */
     template<typename VectorType>
-    static quat from_euler(const VectorType& euler);
+    static Quat from_euler(const VectorType& euler);
 
     /**
      * @brief Create quaternion from rotation matrix
@@ -183,7 +183,7 @@ public:
      * @return Quaternion representing the rotation
      */
     template<typename MatrixType>
-    static quat from_rotation_matrix(const MatrixType& R);
+    static Quat from_rotation_matrix(const MatrixType& R);
 
 private:
     std::array<double, 4> data_;  // [x, y, z, w] - scalar LAST
@@ -192,13 +192,13 @@ private:
 // Template implementations
 
 template<typename VectorType>
-quat::quat(const VectorType& vec) 
+Quat::Quat(const VectorType& vec) 
     : data_{vec[0], vec[1], vec[2], vec[3]} {
     normalize();
 }
 
 template<typename VectorType>
-std::array<double, 3> quat::transform(const VectorType& v) const {
+std::array<double, 3> Quat::transform(const VectorType& v) const {
     // Transform vector to different frame: v' = q * v * q^(-1)
     // Using the formula: v' = v + 2*w*(q_xyz × v) + 2*q_xyz × (q_xyz × v)
     
@@ -230,12 +230,12 @@ std::array<double, 3> quat::transform(const VectorType& v) const {
 }
 
 template<typename VectorType>
-std::array<double, 3> quat::transform_inverse(const VectorType& v) const {
+std::array<double, 3> Quat::transform_inverse(const VectorType& v) const {
     return conjugate().transform(v);
 }
 
 template<typename VectorType>
-quat quat::from_euler(const VectorType& euler) {
+Quat Quat::from_euler(const VectorType& euler) {
     // 321 Euler angle sequence: yaw-pitch-roll (ZYX)
     // euler = [roll, pitch, yaw]
     // Rotations applied in order: Yaw (Z), then Pitch (Y), then Roll (X)
@@ -260,11 +260,11 @@ quat quat::from_euler(const VectorType& euler) {
     const double z = cr * cp * sy + sr * sp * cy;
     const double w = cr * cp * cy - sr * sp * sy;
     
-    return quat(x, y, z, w);
+    return Quat(x, y, z, w);
 }
 
 template<typename MatrixType>
-quat quat::from_rotation_matrix(const MatrixType& R) {
+Quat Quat::from_rotation_matrix(const MatrixType& R) {
     // Shepperd's method for numerical stability
     // Choose the largest diagonal element to avoid division by small numbers
     
@@ -302,6 +302,6 @@ quat quat::from_rotation_matrix(const MatrixType& R) {
         z = 0.25 * s;
     }
     
-    return quat(x, y, z, w);
+    return Quat(x, y, z, w);
 }
 
