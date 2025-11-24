@@ -1,6 +1,11 @@
 #include "common/quaternion.hpp"
 #include <cmath>
 
+// For M_PI portability across compilers
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 namespace ekf9dof {
 
 QuaternionImpl::QuaternionImpl() : data_{0.0, 0.0, 0.0, 1.0} {

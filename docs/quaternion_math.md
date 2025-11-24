@@ -462,6 +462,8 @@ position_n += v_nav * dt;
 
 6. **Numerical stability**: The library uses Shepperd's method for rotation matrix to quaternion conversion to avoid division by small numbers.
 
+7. **M_PI portability**: Examples use `M_PI` from `<cmath>`. On MSVC, you may need to `#define _USE_MATH_DEFINES` before including `<cmath>`, or the library defines it if unavailable. In C++20, consider using `std::numbers::pi`.
+
 ## References
 
 - **Quaternions**: Hamilton convention, scalar-last [x, y, z, w]
