@@ -469,11 +469,10 @@ LSM9DS0Driver::LSM9DS0Driver(const char *i2c_device_path)
 LSM9DS0Driver::~LSM9DS0Driver()
 {
     stop();
-    // Close log file if open
-    if (log_file_.is_open())
-    {
-        log_file_.close();
-    }
+    if (log_file_gyro_.is_open()) log_file_gyro_.close();
+    if (log_file_accel_.is_open()) log_file_accel_.close();
+    if (log_file_mag_.is_open()) log_file_mag_.close();
+    if (log_file_temp_.is_open()) log_file_temp_.close();
 }
 
 void LSM9DS0Driver::start()
@@ -542,79 +541,71 @@ void LSM9DS0Driver::print_debug_data(uint64_t timestamp_ns,
 // Binary Logging
 // ============================================================================
 
-bool LSM9DS0Driver::set_data_logging(bool enable, const std::string &filename)
+bool LSM9DS0Driver::set_data_logging(bool enable, const std::string& filename)
 {
     std::lock_guard<std::mutex> lock(log_mutex_);
-
+    
     if (enable)
     {
-        if (log_file_.is_open())
+        if (!log_file_gyro_.is_open())
         {
-            std::cerr << "WARNING: Log file already open\n";
-            return false;
+            // Extract base name and create per-sensor files
+            size_t dot_pos = filename.find_last_of('.');
+            std::string base = (dot_pos == std::string::npos) ? filename : filename.substr(0, dot_pos);
+            std::string ext = (dot_pos == std::string::npos) ? ".bin" : filename.substr(dot_pos);
+            
+            std::string gyro_file = base + "_gyro" + ext;
+            std::string accel_file = base + "_accel" + ext;
+            std::string mag_file = base + "_mag" + ext;
+            std::string temp_file = base + "_temp" + ext;
+            
+            log_file_gyro_.open(gyro_file, std::ios::binary);
+            log_file_accel_.open(accel_file, std::ios::binary);
+            log_file_mag_.open(mag_file, std::ios::binary);
+            log_file_temp_.open(temp_file, std::ios::binary);
+            
+            if (!log_file_gyro_.is_open() || !log_file_accel_.is_open() || 
+                !log_file_mag_.is_open() || !log_file_temp_.is_open())
+            {
+                // Close any that opened
+                if (log_file_gyro_.is_open()) log_file_gyro_.close();
+                if (log_file_accel_.is_open()) log_file_accel_.close();
+                if (log_file_mag_.is_open()) log_file_mag_.close();
+                if (log_file_temp_.is_open()) log_file_temp_.close();
+                logging_enabled_.store(false);
+                return false;
+            }
+            
+            // Write magic and version to each file
+            uint32_t magic = 0x494D5532; // "IMU2"
+            uint16_t version = 2;
+            
+            log_file_gyro_.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
+            log_file_gyro_.write(reinterpret_cast<const char*>(&version), sizeof(version));
+            
+            log_file_accel_.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
+            log_file_accel_.write(reinterpret_cast<const char*>(&version), sizeof(version));
+            
+            log_file_mag_.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
+            log_file_mag_.write(reinterpret_cast<const char*>(&version), sizeof(version));
+            
+            log_file_temp_.write(reinterpret_cast<const char*>(&magic), sizeof(magic));
+            log_file_temp_.write(reinterpret_cast<const char*>(&version), sizeof(version));
+            
+            logging_enabled_.store(true);
+            return true;
         }
-
-        log_file_.open(filename, std::ios::binary | std::ios::out);
-        if (!log_file_.is_open())
-        {
-            std::cerr << "ERROR: Failed to open log file: " << filename << "\n";
-            return false;
-        }
-
-        // Write binary file header
-        // Magic number to identify file format (0x494D5539 = "IMU9")
-        uint32_t magic = 0x494D5539;
-        uint32_t version = 1;
-        uint32_t sample_size = sizeof(uint64_t) + 10 * sizeof(float); // timestamp + 10 floats
-
-        log_file_.write(reinterpret_cast<const char *>(&magic), sizeof(magic));
-        log_file_.write(reinterpret_cast<const char *>(&version), sizeof(version));
-        log_file_.write(reinterpret_cast<const char *>(&sample_size), sizeof(sample_size));
-        log_file_.flush();
-
-        logging_enabled_.store(true);
-        std::cout << "✓ Binary logging enabled: " << filename << "\n";
-        return true;
+        return true; // Already enabled
     }
     else
     {
+        if (log_file_gyro_.is_open()) log_file_gyro_.close();
+        if (log_file_accel_.is_open()) log_file_accel_.close();
+        if (log_file_mag_.is_open()) log_file_mag_.close();
+        if (log_file_temp_.is_open()) log_file_temp_.close();
         logging_enabled_.store(false);
-        if (log_file_.is_open())
-        {
-            log_file_.close();
-            std::cout << "✓ Binary logging disabled\n";
-        }
         return true;
     }
-}
-
-void LSM9DS0Driver::write_binary_log(uint64_t timestamp_ns,
-                                     float ax, float ay, float az,
-                                     float gx, float gy, float gz,
-                                     float mx, float my, float mz,
-                                     float temp)
-{
-    std::lock_guard<std::mutex> lock(log_mutex_);
-
-    if (!log_file_.is_open())
-    {
-        return;
-    }
-
-    // Write timestamp (8 bytes)
-    log_file_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
-
-    // Write sensor data (10 floats = 40 bytes)
-    log_file_.write(reinterpret_cast<const char *>(&ax), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&ay), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&az), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&gx), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&gy), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&gz), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&mx), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&my), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&mz), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&temp), sizeof(float));
 }
 
 // ============================================================================
@@ -625,68 +616,60 @@ void LSM9DS0Driver::write_gyro_log(uint64_t timestamp_ns, float gx, float gy, fl
 {
     std::lock_guard<std::mutex> lock(log_mutex_);
     
-    if (!log_file_.is_open())
+    if (!log_file_gyro_.is_open())
     {
         return;
     }
     
-    // Record type 0x01 = Gyro
-    uint8_t record_type = 0x01;
-    log_file_.write(reinterpret_cast<const char *>(&record_type), sizeof(record_type));
-    log_file_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
-    log_file_.write(reinterpret_cast<const char *>(&gx), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&gy), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&gz), sizeof(float));
+    // No record type byte needed - file is gyro-specific
+    log_file_gyro_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
+    log_file_gyro_.write(reinterpret_cast<const char *>(&gx), sizeof(float));
+    log_file_gyro_.write(reinterpret_cast<const char *>(&gy), sizeof(float));
+    log_file_gyro_.write(reinterpret_cast<const char *>(&gz), sizeof(float));
 }
 
 void LSM9DS0Driver::write_accel_log(uint64_t timestamp_ns, float ax, float ay, float az)
 {
     std::lock_guard<std::mutex> lock(log_mutex_);
     
-    if (!log_file_.is_open())
+    if (!log_file_accel_.is_open())
     {
         return;
     }
     
-    // Record type 0x02 = Accel
-    uint8_t record_type = 0x02;
-    log_file_.write(reinterpret_cast<const char *>(&record_type), sizeof(record_type));
-    log_file_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
-    log_file_.write(reinterpret_cast<const char *>(&ax), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&ay), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&az), sizeof(float));
+    // No record type byte needed - file is accel-specific
+    log_file_accel_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
+    log_file_accel_.write(reinterpret_cast<const char *>(&ax), sizeof(float));
+    log_file_accel_.write(reinterpret_cast<const char *>(&ay), sizeof(float));
+    log_file_accel_.write(reinterpret_cast<const char *>(&az), sizeof(float));
 }
 
 void LSM9DS0Driver::write_mag_log(uint64_t timestamp_ns, float mx, float my, float mz)
 {
     std::lock_guard<std::mutex> lock(log_mutex_);
     
-    if (!log_file_.is_open())
+    if (!log_file_mag_.is_open())
     {
         return;
     }
     
-    // Record type 0x03 = Mag
-    uint8_t record_type = 0x03;
-    log_file_.write(reinterpret_cast<const char *>(&record_type), sizeof(record_type));
-    log_file_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
-    log_file_.write(reinterpret_cast<const char *>(&mx), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&my), sizeof(float));
-    log_file_.write(reinterpret_cast<const char *>(&mz), sizeof(float));
+    // No record type byte needed - file is mag-specific
+    log_file_mag_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
+    log_file_mag_.write(reinterpret_cast<const char *>(&mx), sizeof(float));
+    log_file_mag_.write(reinterpret_cast<const char *>(&my), sizeof(float));
+    log_file_mag_.write(reinterpret_cast<const char *>(&mz), sizeof(float));
 }
 
 void LSM9DS0Driver::write_temp_log(uint64_t timestamp_ns, float temp)
 {
     std::lock_guard<std::mutex> lock(log_mutex_);
     
-    if (!log_file_.is_open())
+    if (!log_file_temp_.is_open())
     {
         return;
     }
     
-    // Record type 0x04 = Temp
-    uint8_t record_type = 0x04;
-    log_file_.write(reinterpret_cast<const char *>(&record_type), sizeof(record_type));
-    log_file_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
-    log_file_.write(reinterpret_cast<const char *>(&temp), sizeof(float));
+    // No record type byte needed - file is temp-specific
+    log_file_temp_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
+    log_file_temp_.write(reinterpret_cast<const char *>(&temp), sizeof(float));
 }

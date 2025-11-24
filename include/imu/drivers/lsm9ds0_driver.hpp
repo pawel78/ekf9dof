@@ -207,13 +207,6 @@ private:
                           float mx, float my, float mz,
                           float temp);
     
-    // Binary logging helper
-    void write_binary_log(uint64_t timestamp_ns,
-                          float ax, float ay, float az,
-                          float gx, float gy, float gz,
-                          float mx, float my, float mz,
-                          float temp);
-
     // Per-sensor binary logging helpers (v2 format)
     void write_gyro_log(uint64_t timestamp_ns, 
                         float gx, 
@@ -239,6 +232,9 @@ private:
     std::atomic<bool> logging_enabled_;
     std::thread driver_thread_;
     std::unique_ptr<I2CDevice> i2c_device_;
-    std::ofstream log_file_;
+    std::ofstream log_file_gyro_;
+    std::ofstream log_file_accel_;
+    std::ofstream log_file_mag_;
+    std::ofstream log_file_temp_;
     std::mutex log_mutex_;
 };
