@@ -4,9 +4,10 @@ This document describes the quaternion math implementation following the 321 rot
 
 ## Table of Contents
 - [Overview](#overview)
-- [Namespace and Class Structure](#namespace-and-class-structure)
+- [Class Structure](#class-structure)
 - [Quaternion Representation](#quaternion-representation)
 - [Coordinate Frames](#coordinate-frames)
+- [Frame Transformation vs Rotation](#frame-transformation-vs-rotation)
 - [Frame-Explicit Operations](#frame-explicit-operations)
 - [Rotation Sequence (321)](#rotation-sequence-321)
 - [API Reference](#api-reference)
@@ -14,7 +15,7 @@ This document describes the quaternion math implementation following the 321 rot
 
 ## Overview
 
-The quaternion math library provides robust and efficient 3D rotation operations for navigation and attitude estimation. The implementation is designed for use with 9-DOF IMU sensors and follows aerospace conventions.
+The quaternion math library provides robust and efficient frame transformation operations for navigation and attitude estimation. The implementation is designed for use with 9-DOF IMU sensors and follows aerospace conventions.
 
 **Key Features:**
 - Hamilton convention quaternions (scalar-last: [x, y, z, w])
@@ -22,31 +23,29 @@ The quaternion math library provides robust and efficient 3D rotation operations
 - NED navigation frame and FRD body frame support
 - Frame-explicit naming for navigation clarity
 - Automatic normalization for numerical stability
-- Optimized vector rotation operations
+- Optimized frame transformation operations
 - Complete conversion between quaternions, Euler angles, and rotation matrices
 
-## Namespace and Class Structure
+## Class Structure
 
-The quaternion library uses the `quat` namespace with a class also named `quat`:
+The quaternion library uses a simple `quat` class without namespace encapsulation:
 
 ```cpp
-namespace quat {
-    class quat {
-        // Quaternion implementation
-    };
-}
+class quat {
+    // Quaternion implementation
+};
 ```
 
 **Usage:**
 ```cpp
 #include "common/so3.hpp"
 
-// Full qualification required
-quat::quat my_quaternion;
-quat::quat n_q_b = quat::quat::from_euler(euler_angles);
+// Simple, direct usage
+quat my_quaternion;
+quat n_q_b = quat::from_euler(euler_angles);
 ```
 
-The namespace and class share the same name to emphasize that this is a dedicated quaternion library for navigation purposes.
+The class is self-contained and doesn't require a namespace since it's already well-encapsulated.
 
 ## Quaternion Representation
 
@@ -121,18 +120,39 @@ For wheeled vehicles with odometry:
 - Offset from IMU location: `r_wheel_b`
 - Used for velocity measurements and dead reckoning
 
+## Frame Transformation vs Rotation
+
+**Critical distinction:**
+
+### Frame Transformation (what this library does)
+- **Changes coordinate representation, NOT the physical vector**
+- The same physical vector is expressed in different coordinate systems
+- Example: A vector pointing North is [1,0,0] in NED frame but may be [0,1,0] in body frame
+- Method: `transform()` and `transform_inverse()`
+- Think: "Express vector from frame A in frame B coordinates"
+
+### Rotation (different operation)
+- **Changes the physical vector's direction while keeping the same frame**
+- Actually rotates the vector in physical space
+- Example: Rotating a pointing-North vector by 90° makes it point East
+- This library does NOT provide rotation operations by design
+- Think: "Turn the vector itself"
+
+**For navigation:**
+We use frame transformations because we want to express sensor measurements (which are in body frame) in navigation frame coordinates. The physical measurement doesn't change; we're just representing it differently.
+
 ## Frame-Explicit Operations
 
 ### Naming Convention
 
 For a quaternion `b_q_a`:
-- Represents rotation **from frame 'a' to frame 'b'**
-- Transforms vectors from frame 'a' coordinates to frame 'b' coordinates
-- Usage: `v_b = b_q_a.rotate(v_a)`
+- Expresses vectors **from frame 'a' in frame 'b' coordinates**
+- Changes coordinate representation, not the physical vector
+- Usage: `v_b = b_q_a.transform(v_a)`
 
 **Examples:**
-- `n_q_b`: Navigation from body (transforms body vectors to navigation frame)
-- `b_q_n`: Body from navigation (transforms navigation vectors to body frame)
+- `n_q_b`: Expresses body frame vectors in navigation frame coordinates
+- `b_q_n`: Expresses navigation frame vectors in body frame coordinates
 - `n_q_b = b_q_n.inverse()` or `n_q_b = b_q_n.conjugate()`
 
 ### Quaternion Composition
@@ -143,13 +163,13 @@ This reads: "to go from frame 'a' to frame 'c', first transform from 'a' to 'b',
 
 **Example:**
 ```cpp
-quat::quat i_q_b;  // intermediate from body
-quat::quat n_q_i;  // navigation from intermediate
-quat::quat n_q_b = n_q_i * i_q_b;  // navigation from body (composed)
+quat i_q_b;  // intermediate from body
+quat n_q_i;  // navigation from intermediate
+quat n_q_b = n_q_i * i_q_b;  // navigation from body (composed)
 
 // Apply transformation
 std::array<double, 3> v_b = {1.0, 0.0, 0.0};  // vector in body frame
-std::array<double, 3> v_n = n_q_b.rotate(v_b);  // vector in nav frame
+std::array<double, 3> v_n = n_q_b.transform(v_b);  // vector in nav frame
 ```
 
 ## Rotation Sequence (321)
@@ -191,7 +211,7 @@ For an aircraft/vehicle:
 
 ## API Reference
 
-### Class: `quat::quat`
+### Class: `quat`
 
 Located in: `include/common/quaternion.hpp` and `include/common/so3.hpp`
 
@@ -199,13 +219,13 @@ Located in: `include/common/quaternion.hpp` and `include/common/so3.hpp`
 
 ```cpp
 // Default constructor - identity quaternion [0, 0, 0, 1]
-quat::quat();
+quat();
 
 // Construct from components (scalar LAST)
-quat::quat(double x, double y, double z, double w);
+quat(double x, double y, double z, double w);
 
 // Construct from std::array<double, 4>
-explicit quat::quat(const std::array<double, 4>& vec);
+explicit quat(const std::array<double, 4>& vec);
 ```
 
 #### Accessors
@@ -223,41 +243,41 @@ const std::array<double, 4>& coeffs() const; // Get all coefficients [x,y,z,w]
 
 ```cpp
 double norm() const;                 // Compute quaternion norm
-void normalize();                     // Normalize to unit length
-quat::quat normalized() const;        // Return normalized copy
-quat::quat conjugate() const;         // Get conjugate (inverse rotation)
-quat::quat inverse() const;           // Get inverse (same as conjugate for unit q)
+void normalize();                    // Normalize to unit length
+quat normalized() const;             // Return normalized copy
+quat conjugate() const;              // Get conjugate (inverse transformation)
+quat inverse() const;                // Get inverse (same as conjugate for unit q)
 ```
 
-#### Vector Rotation
+#### Frame Transformation
 
 ```cpp
-// Rotate vector: v' = q * v * q^(-1)
-// For b_q_a: v_b = b_q_a.rotate(v_a)
-std::array<double, 3> rotate(const std::array<double, 3>& v) const;
+// Express vector in different frame coordinates
+// For b_q_a: v_b = b_q_a.transform(v_a)
+std::array<double, 3> transform(const std::array<double, 3>& v) const;
 
-// Rotate by inverse: v' = q^(-1) * v * q
-// For b_q_a: v_a = b_q_a.rotate_inverse(v_b)
-std::array<double, 3> rotate_inverse(const std::array<double, 3>& v) const;
+// Express by inverse transformation
+// For b_q_a: v_a = b_q_a.transform_inverse(v_b)
+std::array<double, 3> transform_inverse(const std::array<double, 3>& v) const;
 ```
 
 #### Quaternion Composition
 
 ```cpp
-// Multiply quaternions (compose rotations)
+// Compose frame transformations
 // c_q_a = c_q_b * b_q_a
-quat::quat operator*(const quat::quat& other) const;
+quat operator*(const quat& other) const;
 ```
 
 #### Conversions
 
 ```cpp
 // Convert to/from Euler angles (321 sequence)
-static quat::quat from_euler(const std::array<double, 3>& euler);
+static quat from_euler(const std::array<double, 3>& euler);
 std::array<double, 3> to_euler() const;
 
 // Convert to/from rotation matrix
-static quat::quat from_rotation_matrix(const std::array<std::array<double, 3>, 3>& R);
+static quat from_rotation_matrix(const std::array<std::array<double, 3>, 3>& R);
 std::array<std::array<double, 3>, 3> to_rotation_matrix() const;
 ```
 
@@ -272,7 +292,7 @@ std::array<std::array<double, 3>, 3> to_rotation_matrix() const;
 std::array<double, 3> euler{0.1, 0.2, 0.3};  // 5.7°, 11.5°, 17.2°
 
 // Convert to quaternion (navigation from body)
-quat::quat n_q_b = quat::quat::from_euler(euler);
+quat n_q_b = quat::from_euler(euler);
 
 // Access components (scalar is LAST: w at index 3)
 std::cout << "Quaternion: [" << n_q_b.x() << ", " 
@@ -288,10 +308,10 @@ std::array<double, 3> accel_b{0.0, 0.0, 9.81};
 
 // Current attitude (30° pitch up)
 std::array<double, 3> euler{0.0, M_PI/6.0, 0.0};
-quat::quat n_q_b = quat::quat::from_euler(euler);
+quat n_q_b = quat::from_euler(euler);
 
 // Transform to navigation frame: v_n = n_q_b * v_b
-std::array<double, 3> accel_n = n_q_b.rotate(accel_b);
+std::array<double, 3> accel_n = n_q_b.transform(accel_b);
 
 // With 30° pitch, gravity appears tilted in nav frame
 std::cout << "Accel in nav frame: [" << accel_n[0] << ", " 
@@ -305,10 +325,10 @@ std::cout << "Accel in nav frame: [" << accel_n[0] << ", "
 std::array<double, 3> gravity_n{0.0, 0.0, 9.81};
 
 // Current attitude quaternion (nav from body)
-quat::quat n_q_b = quat::quat::from_euler(euler);
+quat n_q_b = quat::from_euler(euler);
 
-// Transform to body frame: v_b = n_q_b.rotate_inverse(v_n)
-std::array<double, 3> gravity_b = n_q_b.rotate_inverse(gravity_n);
+// Transform to body frame: v_b = n_q_b.transform_inverse(v_n)
+std::array<double, 3> gravity_b = n_q_b.transform_inverse(gravity_n);
 
 std::cout << "Gravity in body frame: [" << gravity_b[0] << ", " 
           << gravity_b[1] << ", " << gravity_b[2] << "]" << std::endl;
@@ -321,11 +341,11 @@ std::cout << "Gravity in body frame: [" << gravity_b[0] << ", "
 std::array<double, 3> accel_measured_b = imu.get_acceleration();
 
 // Current attitude (nav from body)
-quat::quat n_q_b = get_current_attitude();
+quat n_q_b = get_current_attitude();
 
 // Gravity in body frame
 std::array<double, 3> gravity_n{0.0, 0.0, 9.81};
-std::array<double, 3> gravity_b = n_q_b.rotate_inverse(gravity_n);
+std::array<double, 3> gravity_b = n_q_b.transform_inverse(gravity_n);
 
 // True acceleration (without gravity)
 std::array<double, 3> accel_true_b{
@@ -339,18 +359,18 @@ std::array<double, 3> accel_true_b{
 
 ```cpp
 // Rotation from body to intermediate frame
-quat::quat i_q_b = quat::quat::from_euler(std::array<double, 3>{0.1, 0.0, 0.0});
+quat i_q_b = quat::from_euler(std::array<double, 3>{0.1, 0.0, 0.0});
 
 // Rotation from intermediate to navigation frame
-quat::quat n_q_i = quat::quat::from_euler(std::array<double, 3>{0.0, 0.2, 0.0});
+quat n_q_i = quat::from_euler(std::array<double, 3>{0.0, 0.2, 0.0});
 
 // Combined rotation: navigation from body
 // Formula: c_q_a = c_q_b * b_q_a
-quat::quat n_q_b = n_q_i * i_q_b;
+quat n_q_b = n_q_i * i_q_b;
 
 // Apply transformation
 std::array<double, 3> v_b{1.0, 2.0, 3.0};
-std::array<double, 3> v_n = n_q_b.rotate(v_b);
+std::array<double, 3> v_n = n_q_b.transform(v_b);
 ```
 
 ### Example 6: Integrate Gyroscope for Attitude Update
@@ -377,7 +397,7 @@ if (theta > 1e-8) {  // Avoid division by zero
     
     // Create incremental rotation quaternion
     double half_theta = theta * 0.5;
-    quat::quat dq(
+    quat dq(
         axis[0] * std::sin(half_theta),
         axis[1] * std::sin(half_theta),
         axis[2] * std::sin(half_theta),
@@ -385,7 +405,7 @@ if (theta > 1e-8) {  // Avoid division by zero
     );
     
     // Update attitude (right multiplication for body-frame rates)
-    quat::quat n_q_b_new = n_q_b_old * dq;
+    quat n_q_b_new = n_q_b_old * dq;
     
     // Normalize periodically to prevent drift
     n_q_b_new.normalize();
@@ -399,10 +419,10 @@ if (theta > 1e-8) {  // Avoid division by zero
 std::array<double, 3> mag_b = imu.get_magnetometer();
 
 // Current attitude (nav from body)
-quat::quat n_q_b = get_current_attitude();
+quat n_q_b = get_current_attitude();
 
 // Rotate to navigation frame
-std::array<double, 3> mag_n = n_q_b.rotate(mag_b);
+std::array<double, 3> mag_n = n_q_b.transform(mag_b);
 
 // Extract heading (yaw) from horizontal components (NED frame)
 double heading = std::atan2(mag_n[1], mag_n[0]);  // atan2(East, North)
@@ -418,11 +438,11 @@ std::cout << "Magnetic heading: " << heading * 180.0 / M_PI << " degrees" << std
 // Need rotation to align frames
 
 std::array<double, 3> camera_euler{0.0, M_PI/2.0, M_PI/2.0};
-quat::quat b_q_cam = quat::quat::from_euler(camera_euler);
+quat b_q_cam = quat::from_euler(camera_euler);
 
 // Transform feature point from camera to body frame
 std::array<double, 3> point_cam = detect_feature();
-std::array<double, 3> point_b = b_q_cam.rotate(point_cam);
+std::array<double, 3> point_b = b_q_cam.transform(point_cam);
 ```
 
 ## Best Practices
@@ -439,7 +459,7 @@ std::array<double, 3> point_b = b_q_cam.rotate(point_cam);
 
 6. **Use std::array**: The library uses `std::array<double, 3>` and `std::array<double, 4>` instead of Eigen types for simplicity and portability.
 
-7. **Namespace qualification**: Always use `quat::quat` for the class name to avoid ambiguity with the namespace.
+7. **Namespace qualification**: Always use `quat` for the class name to avoid ambiguity with the namespace.
 
 ## References
 

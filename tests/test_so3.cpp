@@ -19,7 +19,7 @@ bool array_equal(const std::array<double, 3>& a, const std::array<double, 3>& b,
 }
 
 // Helper to compare quaternions
-bool quaternion_equal(const quat::quat& a, const quat::quat& b, double epsilon = 1e-6) {
+bool quaternion_equal(const quat& a, const quat& b, double epsilon = 1e-6) {
     return std::fabs(a.x() - b.x()) < epsilon &&
            std::fabs(a.y() - b.y()) < epsilon &&
            std::fabs(a.z() - b.z()) < epsilon &&
@@ -29,7 +29,7 @@ bool quaternion_equal(const quat::quat& a, const quat::quat& b, double epsilon =
 void test_identity_quaternion() {
     std::cout << "Testing identity quaternion..." << std::endl;
     
-    quat::quat q;
+    quat q;
     assert(double_equal(q.x(), 0.0));
     assert(double_equal(q.y(), 0.0));
     assert(double_equal(q.z(), 0.0));
@@ -44,12 +44,12 @@ void test_quaternion_construction() {
     
     // Test from components (scalar last)
     const double sqrt2_2 = std::sqrt(2.0) / 2.0;  // sin(45°) = cos(45°)
-    quat::quat q1(0.0, 0.0, sqrt2_2, sqrt2_2);  // 90° rotation about Z
+    quat q1(0.0, 0.0, sqrt2_2, sqrt2_2);  // 90° rotation about Z
     assert(double_equal(q1.norm(), 1.0));
     
     // Test from array
     std::array<double, 4> vec{0.0, 0.0, sqrt2_2, sqrt2_2};
-    quat::quat q2(vec);
+    quat q2(vec);
     assert(double_equal(q2.norm(), 1.0));
     
     std::cout << "  ✓ Quaternion construction test passed" << std::endl;
@@ -60,13 +60,13 @@ void test_euler_to_quaternion_simple() {
     
     // Test zero rotation
     std::array<double, 3> euler_zero{0.0, 0.0, 0.0};
-    quat::quat q_zero = quat::quat::from_euler(euler_zero);
-    assert(quaternion_equal(q_zero, quat::quat()));
+    quat q_zero = quat::from_euler(euler_zero);
+    assert(quaternion_equal(q_zero, quat()));
     
     // Test 90° roll (about X-axis)
     const double sqrt2_2 = std::sqrt(2.0) / 2.0;  // sin(45°) = cos(45°)
     std::array<double, 3> euler_roll{M_PI / 2.0, 0.0, 0.0};
-    quat::quat q_roll = quat::quat::from_euler(euler_roll);
+    quat q_roll = quat::from_euler(euler_roll);
     assert(double_equal(q_roll.x(), sqrt2_2, 1e-5));
     assert(double_equal(q_roll.y(), 0.0, 1e-5));
     assert(double_equal(q_roll.z(), 0.0, 1e-5));
@@ -74,7 +74,7 @@ void test_euler_to_quaternion_simple() {
     
     // Test 90° pitch (about Y-axis)
     std::array<double, 3> euler_pitch{0.0, M_PI / 2.0, 0.0};
-    quat::quat q_pitch = quat::quat::from_euler(euler_pitch);
+    quat q_pitch = quat::from_euler(euler_pitch);
     assert(double_equal(q_pitch.x(), 0.0, 1e-5));
     assert(double_equal(q_pitch.y(), sqrt2_2, 1e-5));
     assert(double_equal(q_pitch.z(), 0.0, 1e-5));
@@ -82,7 +82,7 @@ void test_euler_to_quaternion_simple() {
     
     // Test 90° yaw (about Z-axis)
     std::array<double, 3> euler_yaw{0.0, 0.0, M_PI / 2.0};
-    quat::quat q_yaw = quat::quat::from_euler(euler_yaw);
+    quat q_yaw = quat::from_euler(euler_yaw);
     assert(double_equal(q_yaw.x(), 0.0, 1e-5));
     assert(double_equal(q_yaw.y(), 0.0, 1e-5));
     assert(double_equal(q_yaw.z(), sqrt2_2, 1e-5));
@@ -96,50 +96,50 @@ void test_quaternion_to_euler() {
     
     // Test round-trip conversion
     std::array<double, 3> euler_in{0.1, 0.2, 0.3};  // roll, pitch, yaw
-    quat::quat q = quat::quat::from_euler(euler_in);
+    quat q = quat::from_euler(euler_in);
     std::array<double, 3> euler_out = q.to_euler();
     
     assert(array_equal(euler_in, euler_out, 1e-6));
     
     // Test multiple angles
     std::array<double, 3> euler_test{0.5, -0.3, 1.2};
-    quat::quat q2 = quat::quat::from_euler(euler_test);
+    quat q2 = quat::from_euler(euler_test);
     std::array<double, 3> euler_out2 = q2.to_euler();
     assert(array_equal(euler_test, euler_out2, 1e-6));
     
     std::cout << "  ✓ Quaternion to Euler test passed" << std::endl;
 }
 
-void test_vector_rotation() {
-    std::cout << "Testing vector rotation (frame-explicit)..." << std::endl;
+void test_vector_transformation() {
+    std::cout << "Testing vector frame transformation..." << std::endl;
     
-    // Rotate vector [1, 0, 0] by 90° about Z-axis
-    // Should result in [0, 1, 0]
+    // Express vector [1, 0, 0] in body frame in navigation frame
+    // With 90° yaw, should be [0, 1, 0] in nav frame
     std::array<double, 3> euler{0.0, 0.0, M_PI / 2.0};
-    quat::quat n_q_b = quat::quat::from_euler(euler);  // nav from body (90° yaw)
+    quat n_q_b = quat::from_euler(euler);  // nav from body (90° yaw)
     
     std::array<double, 3> v_b{1.0, 0.0, 0.0};  // Vector in body frame
-    std::array<double, 3> v_n = n_q_b.rotate(v_b);  // Transform to nav frame
+    std::array<double, 3> v_n = n_q_b.transform(v_b);  // Express in nav frame
     std::array<double, 3> v_expected{0.0, 1.0, 0.0};
     
     assert(array_equal(v_n, v_expected, 1e-6));
     
-    std::cout << "  ✓ Vector rotation test passed" << std::endl;
+    std::cout << "  ✓ Vector frame transformation test passed" << std::endl;
 }
 
-void test_inverse_rotation() {
-    std::cout << "Testing inverse rotation..." << std::endl;
+void test_inverse_transformation() {
+    std::cout << "Testing inverse frame transformation..." << std::endl;
     
     std::array<double, 3> euler{0.3, 0.4, 0.5};
-    quat::quat n_q_b = quat::quat::from_euler(euler);  // nav from body
+    quat n_q_b = quat::from_euler(euler);  // nav from body
     
     std::array<double, 3> v_b_original{1.0, 2.0, 3.0};
-    std::array<double, 3> v_n = n_q_b.rotate(v_b_original);  // body -> nav
-    std::array<double, 3> v_b_back = n_q_b.rotate_inverse(v_n);  // nav -> body
+    std::array<double, 3> v_n = n_q_b.transform(v_b_original);  // express in nav
+    std::array<double, 3> v_b_back = n_q_b.transform_inverse(v_n);  // express back in body
     
     assert(array_equal(v_b_original, v_b_back, 1e-6));
     
-    std::cout << "  ✓ Inverse rotation test passed" << std::endl;
+    std::cout << "  ✓ Inverse frame transformation test passed" << std::endl;
 }
 
 void test_quaternion_multiplication() {
@@ -147,14 +147,14 @@ void test_quaternion_multiplication() {
     
     // Two 90° rotations about Z should equal 180° rotation
     std::array<double, 3> euler1{0.0, 0.0, M_PI / 2.0};
-    quat::quat q1 = quat::quat::from_euler(euler1);
-    quat::quat q2 = quat::quat::from_euler(euler1);
+    quat q1 = quat::from_euler(euler1);
+    quat q2 = quat::from_euler(euler1);
     
-    quat::quat q_combined = q1 * q2;  // Compose rotations
+    quat q_combined = q1 * q2;  // Compose rotations
     
     // Check that it's equivalent to 180° rotation
     std::array<double, 3> v_in{1.0, 0.0, 0.0};
-    std::array<double, 3> v_out = q_combined.rotate(v_in);
+    std::array<double, 3> v_out = q_combined.transform(v_in);
     std::array<double, 3> v_expected{-1.0, 0.0, 0.0};
     
     assert(array_equal(v_out, v_expected, 1e-6));
@@ -166,17 +166,17 @@ void test_conjugate_inverse() {
     std::cout << "Testing conjugate and inverse..." << std::endl;
     
     std::array<double, 3> euler{0.2, 0.3, 0.4};
-    quat::quat q = quat::quat::from_euler(euler);
+    quat q = quat::from_euler(euler);
     
-    quat::quat q_conj = q.conjugate();
-    quat::quat q_inv = q.inverse();
+    quat q_conj = q.conjugate();
+    quat q_inv = q.inverse();
     
     // For unit quaternions, conjugate should equal inverse
     assert(quaternion_equal(q_conj, q_inv));
     
     // q * q^(-1) should be identity
-    quat::quat q_identity = q * q_inv;
-    assert(quaternion_equal(q_identity, quat::quat(), 1e-5));
+    quat q_identity = q * q_inv;
+    assert(quaternion_equal(q_identity, quat(), 1e-5));
     
     std::cout << "  ✓ Conjugate and inverse test passed" << std::endl;
 }
@@ -189,21 +189,21 @@ void test_frame_explicit_composition() {
     std::array<double, 3> euler_b_to_i{0.1, 0.0, 0.0};  // body to intermediate
     std::array<double, 3> euler_i_to_n{0.0, 0.2, 0.0};  // intermediate to nav
     
-    quat::quat i_q_b = quat::quat::from_euler(euler_b_to_i);  // intermediate from body
-    quat::quat n_q_i = quat::quat::from_euler(euler_i_to_n);  // nav from intermediate
+    quat i_q_b = quat::from_euler(euler_b_to_i);  // intermediate from body
+    quat n_q_i = quat::from_euler(euler_i_to_n);  // nav from intermediate
     
     // Compose: nav from body = (nav from intermediate) * (intermediate from body)
-    quat::quat n_q_b = n_q_i * i_q_b;
+    quat n_q_b = n_q_i * i_q_b;
     
     // Test with a vector
     std::array<double, 3> v_b{1.0, 2.0, 3.0};
     
     // Transform directly
-    std::array<double, 3> v_n_direct = n_q_b.rotate(v_b);
+    std::array<double, 3> v_n_direct = n_q_b.transform(v_b);
     
     // Transform step by step
-    std::array<double, 3> v_i = i_q_b.rotate(v_b);
-    std::array<double, 3> v_n_steps = n_q_i.rotate(v_i);
+    std::array<double, 3> v_i = i_q_b.transform(v_b);
+    std::array<double, 3> v_n_steps = n_q_i.transform(v_i);
     
     assert(array_equal(v_n_direct, v_n_steps, 1e-6));
     
@@ -214,11 +214,11 @@ void test_normalization() {
     std::cout << "Testing quaternion normalization..." << std::endl;
     
     // Create unnormalized quaternion
-    quat::quat q(1.0, 1.0, 1.0, 1.0);
+    quat q(1.0, 1.0, 1.0, 1.0);
     assert(double_equal(q.norm(), 1.0));  // Should be automatically normalized
     
     // Create another and check norm
-    quat::quat q2(0.5, 0.5, 0.5, 0.5);
+    quat q2(0.5, 0.5, 0.5, 0.5);
     assert(double_equal(q2.norm(), 1.0));
     
     std::cout << "  ✓ Quaternion normalization test passed" << std::endl;
@@ -227,7 +227,7 @@ void test_normalization() {
 void test_accessor_methods() {
     std::cout << "Testing accessor methods..." << std::endl;
     
-    quat::quat q(0.1, 0.2, 0.3, 0.4);
+    quat q(0.1, 0.2, 0.3, 0.4);
     
     assert(double_equal(q.x(), q(0)));
     assert(double_equal(q.y(), q(1)));
@@ -244,7 +244,7 @@ void test_accessor_methods() {
 }
 
 int main() {
-    std::cout << "Running Quaternion Library Tests (quat namespace)..." << std::endl;
+    std::cout << "Running Quaternion Library Tests..." << std::endl;
     std::cout << "======================================" << std::endl;
     
     try {
@@ -252,8 +252,8 @@ int main() {
         test_quaternion_construction();
         test_euler_to_quaternion_simple();
         test_quaternion_to_euler();
-        test_vector_rotation();
-        test_inverse_rotation();
+        test_vector_transformation();
+        test_inverse_transformation();
         test_quaternion_multiplication();
         test_conjugate_inverse();
         test_frame_explicit_composition();

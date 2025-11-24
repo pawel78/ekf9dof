@@ -4,7 +4,7 @@
 
 /**
  * @file so3.hpp
- * @brief SO3 library for quaternion-based rotations and coordinate transformations
+ * @brief SO3 library for quaternion-based frame transformations
  * 
  * COORDINATE FRAME CONVENTIONS
  * ============================
@@ -33,12 +33,15 @@
  * FRAME-EXPLICIT NAMING
  * =====================
  * For a quaternion b_q_a:
- * - Represents rotation from frame 'a' to frame 'b'
- * - Usage: v_b = b_q_a.rotate(v_a)
- * - Example: n_q_b transforms vectors from body frame to navigation frame
+ * - Expresses vectors from frame 'a' in frame 'b' coordinates
+ * - Usage: v_b = b_q_a.transform(v_a)
+ * - Example: n_q_b expresses body frame vectors in navigation frame coordinates
+ * 
+ * Important: transform() changes the coordinate representation, NOT the physical vector.
+ * The same physical vector is expressed in different coordinate frames.
  * 
  * Quaternion composition: c_q_a = c_q_b * b_q_a
- * This reads: "transform from a to b, then from b to c"
+ * This reads: "express from a in b, then from b in c"
  * 
  * ROTATION SEQUENCE
  * =================
@@ -53,25 +56,24 @@
  * Example 1: Convert Euler angles to quaternion
  * ```cpp
  * std::array<double, 3> euler{0.1, 0.2, 0.3};  // [roll, pitch, yaw]
- * quat::quat n_q_b = quat::quat::from_euler(euler);
+ * quat n_q_b = quat::from_euler(euler);
  * ```
  * 
- * Example 2: Rotate a vector from body to navigation frame
+ * Example 2: Express a vector from body to navigation frame
  * ```cpp
  * std::array<double, 3> v_b{1.0, 0.0, 0.0};  // Vector in body frame
- * quat::quat n_q_b = quat::quat::from_euler(euler);
- * std::array<double, 3> v_n = n_q_b.rotate(v_b);  // Vector in nav frame
+ * quat n_q_b = quat::from_euler(euler);
+ * std::array<double, 3> v_n = n_q_b.transform(v_b);  // Same vector in nav frame
  * ```
  * 
  * Example 3: Compose transformations
  * ```cpp
  * // Transform from body to intermediate, then to navigation
- * quat::quat i_q_b = ...;  // body to intermediate
- * quat::quat n_q_i = ...;  // intermediate to navigation
- * quat::quat n_q_b = n_q_i * i_q_b;  // composed transformation
+ * quat i_q_b = ...;  // body to intermediate
+ * quat n_q_i = ...;  // intermediate to navigation
+ * quat n_q_b = n_q_i * i_q_b;  // composed transformation
  * 
- * // Use it: v_n = n_q_b.rotate(v_b)
+ * // Use it: v_n = n_q_b.transform(v_b)
  * ```
  */
 
-// Note: Use quat::quat to refer to the quaternion class to avoid namespace/class name conflicts

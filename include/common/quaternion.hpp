@@ -13,21 +13,26 @@
  * - NED (North-East-Down) navigation frame
  * - Frame-explicit operations for navigation purposes
  * 
- * Naming convention: b_q_a represents a quaternion that transforms
- * vectors from frame 'a' to frame 'b', i.e., v_b = b_q_a * v_a
+ * Naming convention: b_q_a represents a quaternion that expresses
+ * vectors from frame 'a' in frame 'b', i.e., v_b = b_q_a.transform(v_a)
+ * 
+ * Note: This transforms the coordinate representation, not the physical vector.
+ * The same physical vector is expressed in different coordinate frames.
  */
 
-namespace quat {
-
 /**
- * @brief Quaternion class for 3D rotations in navigation applications
+ * @brief Quaternion class for frame transformations in navigation applications
  * 
- * All quaternions are unit quaternions (norm = 1) representing rotations in SO(3).
+ * All quaternions are unit quaternions (norm = 1) representing frame transformations in SO(3).
  * 
  * Frame convention: For a quaternion b_q_a:
- * - Transforms vectors from frame 'a' to frame 'b'
- * - Usage: v_b = b_q_a.rotate(v_a)
- * - Example: n_q_b transforms body frame to navigation frame
+ * - Expresses vectors from frame 'a' in frame 'b' coordinates
+ * - Usage: v_b = b_q_a.transform(v_a)
+ * - Example: n_q_b expresses body frame vectors in navigation frame
+ * 
+ * Important distinction:
+ * - transform(): Expresses the same physical vector in different coordinates
+ * - NOT a rotation: The vector's physical direction doesn't change
  */
 class quat {
 public:
@@ -98,28 +103,32 @@ public:
     quat inverse() const;
 
     /**
-     * @brief Rotate a 3D vector using this quaternion
+     * @brief Transform (express) a 3D vector from one frame to another
      * 
-     * Performs the rotation: v' = q * v * q^(-1)
-     * For b_q_a: v_b = b_q_a.rotate(v_a)
+     * Expresses a vector in a different coordinate frame.
+     * The physical vector remains the same; only its coordinate representation changes.
      * 
-     * @param v 3D vector to rotate as array [x, y, z]
-     * @return Rotated vector as array [x, y, z]
+     * Performs: v' = q * v * q^(-1)
+     * For b_q_a: v_b = b_q_a.transform(v_a)
+     * 
+     * @param v 3D vector in frame 'a' as array [x, y, z]
+     * @return Same vector expressed in frame 'b' as array [x, y, z]
      */
     template<typename VectorType>
-    std::array<double, 3> rotate(const VectorType& v) const;
+    std::array<double, 3> transform(const VectorType& v) const;
 
     /**
-     * @brief Rotate a vector using the inverse of this quaternion
+     * @brief Transform a vector using the inverse frame transformation
      * 
-     * For b_q_a: v_a = b_q_a.rotate_inverse(v_b)
-     * Equivalent to: conjugate().rotate(v)
+     * Expresses a vector in the inverse coordinate frame.
+     * For b_q_a: v_a = b_q_a.transform_inverse(v_b)
+     * Equivalent to: conjugate().transform(v)
      * 
-     * @param v 3D vector to rotate
-     * @return Rotated vector as array [x, y, z]
+     * @param v 3D vector to transform
+     * @return Transformed vector as array [x, y, z]
      */
     template<typename VectorType>
-    std::array<double, 3> rotate_inverse(const VectorType& v) const;
+    std::array<double, 3> transform_inverse(const VectorType& v) const;
 
     /**
      * @brief Quaternion multiplication (composition of rotations)
@@ -189,8 +198,8 @@ quat::quat(const VectorType& vec)
 }
 
 template<typename VectorType>
-std::array<double, 3> quat::rotate(const VectorType& v) const {
-    // Rotate vector using: v' = q * v * q^(-1)
+std::array<double, 3> quat::transform(const VectorType& v) const {
+    // Transform vector to different frame: v' = q * v * q^(-1)
     // Using the formula: v' = v + 2*w*(q_xyz × v) + 2*q_xyz × (q_xyz × v)
     
     const double qx = data_[0];
@@ -221,8 +230,8 @@ std::array<double, 3> quat::rotate(const VectorType& v) const {
 }
 
 template<typename VectorType>
-std::array<double, 3> quat::rotate_inverse(const VectorType& v) const {
-    return conjugate().rotate(v);
+std::array<double, 3> quat::transform_inverse(const VectorType& v) const {
+    return conjugate().transform(v);
 }
 
 template<typename VectorType>
@@ -296,4 +305,3 @@ quat quat::from_rotation_matrix(const MatrixType& R) {
     return quat(x, y, z, w);
 }
 
-} // namespace quat

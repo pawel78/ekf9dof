@@ -6,8 +6,6 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-namespace quat {
-
 quat::quat() : data_{0.0, 0.0, 0.0, 1.0} {
     // Identity quaternion [0, 0, 0, 1] - scalar last
 }
@@ -142,7 +140,7 @@ std::array<double, 3> quat::to_euler() const {
         pitch = std::asin(sinp);
     }
     
-    // Yaw (ψ) - rotation about Z-axis
+        // Yaw (ψ) - rotation about Z-axis
     const double siny_cosp = 2.0 * (qw * qz - qx * qy);
     const double cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz);
     const double yaw = std::atan2(siny_cosp, cosy_cosp);
@@ -150,4 +148,3 @@ std::array<double, 3> quat::to_euler() const {
     return {roll, pitch, yaw};
 }
 
-} // namespace quat
