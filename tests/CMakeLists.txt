@@ -24,3 +24,15 @@ target_compile_features(test_config_loader PRIVATE cxx_std_17)
 
 # Add test
 add_test(NAME ConfigLoaderTest COMMAND test_config_loader)
+
+# Test executable for SO3 quaternion library
+add_executable(test_so3
+    test_so3.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/quaternion.cpp
+)
+target_include_directories(test_so3 PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_compile_features(test_so3 PRIVATE cxx_std_17)
+
+# Add test
+add_test(NAME SO3Test COMMAND test_so3)
+

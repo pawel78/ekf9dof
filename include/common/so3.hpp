@@ -1,7 +1,268 @@
 #pragma once
 
+#include "common/quaternion.hpp"
 #include <cmath>
 #include <stdexcept>
+#include <array>
+
+// Eigen compatibility layer - provides types similar to Eigen for use with Quaternion class
+namespace Eigen {
+    /**
+     * @brief 3D vector type (compatible with std::array)
+     */
+    struct Vector3d {
+        std::array<double, 3> data;
+        
+        Vector3d() : data{0.0, 0.0, 0.0} {}
+        Vector3d(double x, double y, double z) : data{x, y, z} {}
+        explicit Vector3d(const std::array<double, 3>& arr) : data{arr} {}
+        
+        double operator[](int i) const { return data[i]; }
+        double& operator[](int i) { return data[i]; }
+        double operator()(int i) const { return data[i]; }
+        double& operator()(int i) { return data[i]; }
+        
+        double norm() const {
+            return std::sqrt(data[0]*data[0] + data[1]*data[1] + data[2]*data[2]);
+        }
+        
+        Vector3d normalized() const {
+            const double n = norm();
+            if (n < 1e-12) return Vector3d();
+            return Vector3d(data[0]/n, data[1]/n, data[2]/n);
+        }
+        
+        Vector3d operator-(const Vector3d& other) const {
+            return Vector3d(data[0] - other.data[0], 
+                          data[1] - other.data[1], 
+                          data[2] - other.data[2]);
+        }
+    };
+    
+    /**
+     * @brief 4D vector type for quaternion coefficients
+     */
+    struct Vector4d {
+        std::array<double, 4> data;
+        
+        Vector4d() : data{0.0, 0.0, 0.0, 1.0} {}
+        Vector4d(double x, double y, double z, double w) : data{x, y, z, w} {}
+        explicit Vector4d(const std::array<double, 4>& arr) : data{arr} {}
+        
+        double operator[](int i) const { return data[i]; }
+        double& operator[](int i) { return data[i]; }
+        double operator()(int i) const { return data[i]; }
+        double& operator()(int i) { return data[i]; }
+    };
+    
+    /**
+     * @brief 3x3 matrix type
+     */
+    struct Matrix3d {
+        std::array<std::array<double, 3>, 3> data;
+        
+        Matrix3d() {
+            for (int i = 0; i < 3; ++i)
+                for (int j = 0; j < 3; ++j)
+                    data[i][j] = 0.0;
+        }
+        
+        explicit Matrix3d(const std::array<std::array<double, 3>, 3>& arr) : data{arr} {}
+        
+        std::array<double, 3>& operator[](int i) { return data[i]; }
+        const std::array<double, 3>& operator[](int i) const { return data[i]; }
+        
+        double operator()(int i, int j) const { return data[i][j]; }
+        double& operator()(int i, int j) { return data[i][j]; }
+        
+        // Comma initialization helper
+        struct CommaInitializer {
+            Matrix3d& mat;
+            int row, col;
+            
+            CommaInitializer(Matrix3d& m, int r, int c) : mat(m), row(r), col(c) {}
+            
+            CommaInitializer& operator,(double val) {
+                if (row < 3 && col < 3) {
+                    mat.data[row][col] = val;
+                    col++;
+                    if (col >= 3) {
+                        col = 0;
+                        row++;
+                    }
+                }
+                return *this;
+            }
+        };
+        
+        CommaInitializer operator<<(double val) {
+            data[0][0] = val;
+            return CommaInitializer(*this, 0, 1);
+        }
+        
+        Matrix3d transpose() const {
+            Matrix3d result;
+            for (int i = 0; i < 3; ++i)
+                for (int j = 0; j < 3; ++j)
+                    result.data[j][i] = data[i][j];
+            return result;
+        }
+        
+        Matrix3d operator*(const Matrix3d& other) const {
+            Matrix3d result;
+            for (int i = 0; i < 3; ++i) {
+                for (int j = 0; j < 3; ++j) {
+                    result.data[i][j] = 0.0;
+                    for (int k = 0; k < 3; ++k) {
+                        result.data[i][j] += data[i][k] * other.data[k][j];
+                    }
+                }
+            }
+            return result;
+        }
+        
+        Vector3d operator*(const Vector3d& vec) const {
+            Vector3d result;
+            for (int i = 0; i < 3; ++i) {
+                result.data[i] = 0.0;
+                for (int j = 0; j < 3; ++j) {
+                    result.data[i] += data[i][j] * vec.data[j];
+                }
+            }
+            return result;
+        }
+        
+        Matrix3d operator-(const Matrix3d& other) const {
+            Matrix3d result;
+            for (int i = 0; i < 3; ++i)
+                for (int j = 0; j < 3; ++j)
+                    result.data[i][j] = data[i][j] - other.data[i][j];
+            return result;
+        }
+        
+        double norm() const {
+            double sum = 0.0;
+            for (int i = 0; i < 3; ++i)
+                for (int j = 0; j < 3; ++j)
+                    sum += data[i][j] * data[i][j];
+            return std::sqrt(sum);
+        }
+        
+        double determinant() const {
+            return data[0][0] * (data[1][1] * data[2][2] - data[1][2] * data[2][1])
+                 - data[0][1] * (data[1][0] * data[2][2] - data[1][2] * data[2][0])
+                 + data[0][2] * (data[1][0] * data[2][1] - data[1][1] * data[2][0]);
+        }
+        
+        static Matrix3d Identity() {
+            Matrix3d result;
+            result.data[0][0] = 1.0;
+            result.data[1][1] = 1.0;
+            result.data[2][2] = 1.0;
+            return result;
+        }
+    };
+}
+
+namespace ekf9dof {
+
+// Import the base Quaternion implementation class
+using QuaternionBase = ::ekf9dof::QuaternionImpl;
+
+/**
+ * @brief Eigen-compatible Quaternion class
+ * 
+ * This class extends the core Quaternion class and provides Eigen-like interface
+ * for compatibility with existing code that expects Eigen types.
+ */
+class Quaternion {
+public:
+    // Constructors
+    Quaternion() : quat_(), coeffs_cache_(quat_.coeffs()) {}
+    
+    Quaternion(double x, double y, double z, double w) : quat_(x, y, z, w) {
+        update_coeffs_cache();
+    }
+    
+    explicit Quaternion(const QuaternionBase& q) : quat_(q) {
+        update_coeffs_cache();
+    }
+    
+    explicit Quaternion(const Eigen::Vector4d& vec) : quat_(vec.data) {
+        update_coeffs_cache();
+    }
+    
+    // Accessors
+    double x() const { return quat_.x(); }
+    double y() const { return quat_.y(); }
+    double z() const { return quat_.z(); }
+    double w() const { return quat_.w(); }
+    
+    double operator()(int i) const { return quat_(i); }
+    
+    const Eigen::Vector4d& coeffs() const {
+        return coeffs_cache_;
+    }
+    
+    double norm() const { return quat_.norm(); }
+    
+    void normalize() { 
+        quat_.normalize(); 
+        update_coeffs_cache();
+    }
+    
+    Quaternion normalized() const { 
+        return Quaternion(quat_.normalized()); 
+    }
+    
+    Quaternion conjugate() const { return Quaternion(quat_.conjugate()); }
+    Quaternion inverse() const { return Quaternion(quat_.inverse()); }
+    
+    // Eigen-compatible rotate methods
+    Eigen::Vector3d rotate(const Eigen::Vector3d& v) const {
+        auto result = quat_.rotate(v.data);
+        return Eigen::Vector3d(result);
+    }
+    
+    Eigen::Vector3d rotate_inverse(const Eigen::Vector3d& v) const {
+        auto result = quat_.rotate_inverse(v.data);
+        return Eigen::Vector3d(result);
+    }
+    
+    Quaternion operator*(const Quaternion& other) const {
+        return Quaternion(quat_ * other.quat_);
+    }
+    
+    Eigen::Matrix3d to_rotation_matrix() const {
+        auto mat = quat_.to_rotation_matrix();
+        return Eigen::Matrix3d(mat);
+    }
+    
+    Eigen::Vector3d to_euler() const {
+        auto euler = quat_.to_euler();
+        return Eigen::Vector3d(euler);
+    }
+    
+    // Static factory methods with Eigen types
+    static Quaternion from_euler(const Eigen::Vector3d& euler) {
+        return Quaternion(QuaternionBase::from_euler(euler.data));
+    }
+    
+    static Quaternion from_rotation_matrix(const Eigen::Matrix3d& R) {
+        return Quaternion(QuaternionBase::from_rotation_matrix(R.data));
+    }
+    
+private:
+    QuaternionBase quat_;
+    Eigen::Vector4d coeffs_cache_;
+    
+    void update_coeffs_cache() {
+        const auto& c = quat_.coeffs();
+        coeffs_cache_ = Eigen::Vector4d(c);
+    }
+};
+
+} // namespace ekf9dof
 
 /**
  * @file so3.hpp

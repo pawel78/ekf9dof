@@ -22,6 +22,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 set(LIB_SOURCES
     src/common/i2c_device.cpp
     src/common/custom_time_methods.cpp
+    src/common/quaternion.cpp
     src/imu/drivers/lsm9ds0_driver.cpp
     src/common/config_loader.cpp
     src/imu/processing/imu_preprocessor.cpp
