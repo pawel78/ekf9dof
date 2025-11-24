@@ -213,6 +213,25 @@ private:
                           float gx, float gy, float gz,
                           float mx, float my, float mz,
                           float temp);
+
+    // Per-sensor binary logging helpers (v2 format)
+    void write_gyro_log(uint64_t timestamp_ns, 
+                        float gx, 
+                        float gy, 
+                        float gz);
+    
+    void write_accel_log(uint64_t timestamp_ns, 
+                        float ax, 
+                        float ay, 
+                        float az);
+    
+    void write_mag_log(uint64_t timestamp_ns, 
+                       float mx, 
+                       float my, 
+                       float mz);
+   
+    void write_temp_log(uint64_t timestamp_ns, 
+                        float temp);
     
     // Member variables
     std::atomic<bool> running_;

@@ -230,11 +230,15 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
             float gx_dps = raw_to_dps(gx_raw);
             float gy_dps = raw_to_dps(gy_raw);
             float gz_dps = raw_to_dps(gz_raw);
-
+            
             constexpr float deg_to_rad = M_PI / 180.0f;
             float gx = gx_dps * deg_to_rad;
             float gy = gy_dps * deg_to_rad;
             float gz = gz_dps * deg_to_rad;
+
+            if (driver->logging_enabled_.load()) {
+                driver->write_gyro_log(timestamp, gx_dps, gy_dps, gz_dps);
+            }
 
             // Store for debug output
             latest_gx = gx_dps;
@@ -270,6 +274,7 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
         {
         case 0: // Even samples: read accelerometer
             int16_t ax_raw, ay_raw, az_raw;
+            timestamp = get_timestamp_ns();
             if (driver->read_accel(ax_raw, ay_raw, az_raw))
             {
                 float ax = raw_to_g(ax_raw);
@@ -281,6 +286,10 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
                 latest_ay = ay;
                 latest_az = az;
                 latest_timestamp = timestamp;
+
+                if (driver->logging_enabled_.load()) {
+                    driver->write_accel_log(timestamp, ax, ay, az);
+                }
 
                 imu::messages::raw_accel_msg_t accel_msg{timestamp, ax, ay, az};
                 if (!imu::channels::raw_accel.send(accel_msg))
@@ -309,11 +318,17 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
         case 1: // Odd samples mod 3 == 1: read magnetometer
             // Read magnetometer
             int16_t mx_raw, my_raw, mz_raw;
+            timestamp = get_timestamp_ns();
+
             if (driver->read_mag(mx_raw, my_raw, mz_raw))
             {
                 float mx = raw_to_gauss(mx_raw);
                 float my = raw_to_gauss(my_raw);
                 float mz = raw_to_gauss(mz_raw);
+
+                if (driver->logging_enabled_.load()) {
+                    driver->write_mag_log(timestamp, mx, my, mz);
+                }
 
                 // Store for debug output
                 latest_mx = mx;
@@ -347,9 +362,14 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
         case 2:
             // Read temperature
             int16_t temp_raw;
+            timestamp = get_timestamp_ns();
             if (driver->read_temperature(temp_raw))
             {
                 float temp_c = raw_to_celsius(temp_raw);
+
+                if (driver->logging_enabled_.load()) {
+                    driver->write_temp_log(timestamp, temp_c);
+                }
 
                 // Store for debug output
                 latest_temp = temp_c;
@@ -596,5 +616,79 @@ void LSM9DS0Driver::write_binary_log(uint64_t timestamp_ns,
     log_file_.write(reinterpret_cast<const char *>(&mx), sizeof(float));
     log_file_.write(reinterpret_cast<const char *>(&my), sizeof(float));
     log_file_.write(reinterpret_cast<const char *>(&mz), sizeof(float));
+    log_file_.write(reinterpret_cast<const char *>(&temp), sizeof(float));
+}
+
+// ============================================================================
+// Per-Sensor Binary Logging (V2 Format)
+// ============================================================================
+
+void LSM9DS0Driver::write_gyro_log(uint64_t timestamp_ns, float gx, float gy, float gz)
+{
+    std::lock_guard<std::mutex> lock(log_mutex_);
+    
+    if (!log_file_.is_open())
+    {
+        return;
+    }
+    
+    // Record type 0x01 = Gyro
+    uint8_t record_type = 0x01;
+    log_file_.write(reinterpret_cast<const char *>(&record_type), sizeof(record_type));
+    log_file_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
+    log_file_.write(reinterpret_cast<const char *>(&gx), sizeof(float));
+    log_file_.write(reinterpret_cast<const char *>(&gy), sizeof(float));
+    log_file_.write(reinterpret_cast<const char *>(&gz), sizeof(float));
+}
+
+void LSM9DS0Driver::write_accel_log(uint64_t timestamp_ns, float ax, float ay, float az)
+{
+    std::lock_guard<std::mutex> lock(log_mutex_);
+    
+    if (!log_file_.is_open())
+    {
+        return;
+    }
+    
+    // Record type 0x02 = Accel
+    uint8_t record_type = 0x02;
+    log_file_.write(reinterpret_cast<const char *>(&record_type), sizeof(record_type));
+    log_file_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
+    log_file_.write(reinterpret_cast<const char *>(&ax), sizeof(float));
+    log_file_.write(reinterpret_cast<const char *>(&ay), sizeof(float));
+    log_file_.write(reinterpret_cast<const char *>(&az), sizeof(float));
+}
+
+void LSM9DS0Driver::write_mag_log(uint64_t timestamp_ns, float mx, float my, float mz)
+{
+    std::lock_guard<std::mutex> lock(log_mutex_);
+    
+    if (!log_file_.is_open())
+    {
+        return;
+    }
+    
+    // Record type 0x03 = Mag
+    uint8_t record_type = 0x03;
+    log_file_.write(reinterpret_cast<const char *>(&record_type), sizeof(record_type));
+    log_file_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
+    log_file_.write(reinterpret_cast<const char *>(&mx), sizeof(float));
+    log_file_.write(reinterpret_cast<const char *>(&my), sizeof(float));
+    log_file_.write(reinterpret_cast<const char *>(&mz), sizeof(float));
+}
+
+void LSM9DS0Driver::write_temp_log(uint64_t timestamp_ns, float temp)
+{
+    std::lock_guard<std::mutex> lock(log_mutex_);
+    
+    if (!log_file_.is_open())
+    {
+        return;
+    }
+    
+    // Record type 0x04 = Temp
+    uint8_t record_type = 0x04;
+    log_file_.write(reinterpret_cast<const char *>(&record_type), sizeof(record_type));
+    log_file_.write(reinterpret_cast<const char *>(&timestamp_ns), sizeof(timestamp_ns));
     log_file_.write(reinterpret_cast<const char *>(&temp), sizeof(float));
 }
