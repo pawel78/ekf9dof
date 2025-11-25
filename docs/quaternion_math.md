@@ -128,7 +128,7 @@ For wheeled vehicles with odometry:
 - **Changes coordinate representation, NOT the physical vector**
 - The same physical vector is expressed in different coordinate systems
 - Example: A vector pointing North is [1,0,0] in NED frame but may be [0,1,0] in body frame
-- Method: `transform()` and `transform_inverse()`
+- Operators: `*` operator or `transform()` method
 - Think: "Express vector from frame A in frame B coordinates"
 
 ### Rotation (different operation)
@@ -148,7 +148,7 @@ We use frame transformations because we want to express sensor measurements (whi
 For a quaternion `b_q_a`:
 - Expresses vectors **from frame 'a' in frame 'b' coordinates**
 - Changes coordinate representation, not the physical vector
-- Usage: `v_b = b_q_a.transform(v_a)`
+- Usage: `v_b = b_q_a * v_a` (or `v_b = b_q_a.transform(v_a)`)
 
 **Examples:**
 - `n_q_b`: Expresses body frame vectors in navigation frame coordinates
@@ -167,9 +167,9 @@ Quat i_q_b;  // intermediate from body
 Quat n_q_i;  // navigation from intermediate
 Quat n_q_b = n_q_i * i_q_b;  // navigation from body (composed)
 
-// Apply transformation
+// Apply transformation using * operator
 std::array<double, 3> v_b = {1.0, 0.0, 0.0};  // vector in body frame
-std::array<double, 3> v_n = n_q_b.transform(v_b);  // vector in nav frame
+std::array<double, 3> v_n = n_q_b * v_b;  // vector in nav frame
 ```
 
 ## Rotation Sequence (321)
@@ -252,7 +252,11 @@ Quat inverse() const;                // Get inverse (same as conjugate for unit 
 #### Frame Transformation
 
 ```cpp
-// Express vector in different frame coordinates
+// Express vector in different frame using * operator (preferred)
+// For b_q_a: v_b = b_q_a * v_a
+std::array<double, 3> operator*(const std::array<double, 3>& v) const;
+
+// Equivalent method syntax
 // For b_q_a: v_b = b_q_a.transform(v_a)
 std::array<double, 3> transform(const std::array<double, 3>& v) const;
 
@@ -310,8 +314,8 @@ std::array<double, 3> accel_b{0.0, 0.0, 9.81};
 std::array<double, 3> euler{0.0, M_PI/6.0, 0.0};
 Quat n_q_b = Quat::from_euler(euler);
 
-// Transform to navigation frame: v_n = n_q_b * v_b
-std::array<double, 3> accel_n = n_q_b.transform(accel_b);
+// Transform to navigation frame using * operator: v_n = n_q_b * v_b
+std::array<double, 3> accel_n = n_q_b * accel_b;
 
 // With 30° pitch, gravity appears tilted in nav frame
 std::cout << "Accel in nav frame: [" << accel_n[0] << ", " 
@@ -368,9 +372,9 @@ Quat n_q_i = Quat::from_euler(std::array<double, 3>{0.0, 0.2, 0.0});
 // Formula: c_q_a = c_q_b * b_q_a
 Quat n_q_b = n_q_i * i_q_b;
 
-// Apply transformation
+// Apply transformation using * operator
 std::array<double, 3> v_b{1.0, 2.0, 3.0};
-std::array<double, 3> v_n = n_q_b.transform(v_b);
+std::array<double, 3> v_n = n_q_b * v_b;
 ```
 
 ### Example 6: Integrate Gyroscope for Attitude Update
@@ -421,8 +425,8 @@ std::array<double, 3> mag_b = imu.get_magnetometer();
 // Current attitude (nav from body)
 Quat n_q_b = get_current_attitude();
 
-// Rotate to navigation frame
-std::array<double, 3> mag_n = n_q_b.transform(mag_b);
+// Express in navigation frame using * operator
+std::array<double, 3> mag_n = n_q_b * mag_b;
 
 // Extract heading (yaw) from horizontal components (NED frame)
 double heading = std::atan2(mag_n[1], mag_n[0]);  // atan2(East, North)
@@ -440,20 +444,22 @@ std::cout << "Magnetic heading: " << heading * 180.0 / M_PI << " degrees" << std
 std::array<double, 3> camera_euler{0.0, M_PI/2.0, M_PI/2.0};
 Quat b_q_cam = Quat::from_euler(camera_euler);
 
-// Transform feature point from camera to body frame
+// Transform feature point from camera to body frame using * operator
 std::array<double, 3> point_cam = detect_feature();
-std::array<double, 3> point_b = b_q_cam.transform(point_cam);
+std::array<double, 3> point_b = b_q_cam * point_cam;
 ```
 
 ## Best Practices
 
-1. **Frame-explicit naming**: Always use the `to_from` convention (e.g., `n_q_b` for navigation from body) to avoid confusion.
+1. **Use * operator**: Prefer `v_b = b_q_a * v_a` for vector transformation - it's consistent with quaternion multiplication.
 
-2. **Scalar last**: Remember that the quaternion representation is [x, y, z, w] with the scalar component **last**.
+2. **Frame-explicit naming**: Always use the `to_from` convention (e.g., `n_q_b` for navigation from body) to avoid confusion.
 
-3. **Composition order**: For `c_q_a = c_q_b * b_q_a`, the transformation is applied right-to-left (first b_q_a, then c_q_b).
+3. **Scalar last**: Remember that the quaternion representation is [x, y, z, w] with the scalar component **last**.
 
-4. **Always normalize**: Quaternions should remain normalized. Call `normalize()` periodically to prevent numerical drift.
+4. **Composition order**: For `c_q_a = c_q_b * b_q_a`, the transformation is applied right-to-left (first b_q_a, then c_q_b).
+
+5. **Always normalize**: Quaternions should remain normalized. Call `normalize()` periodically to prevent numerical drift.
 
 5. **Gimbal lock**: At pitch = ±90°, use quaternions directly rather than converting to Euler angles.
 

@@ -119,10 +119,14 @@ void test_vector_transformation() {
     Quat n_q_b = Quat::from_euler(euler);  // nav from body (90° yaw)
     
     std::array<double, 3> v_b{1.0, 0.0, 0.0};  // Vector in body frame
-    std::array<double, 3> v_n = n_q_b.transform(v_b);  // Express in nav frame
+    std::array<double, 3> v_n = n_q_b * v_b;  // Express in nav frame using * operator
     std::array<double, 3> v_expected{0.0, 1.0, 0.0};
     
     assert(array_equal(v_n, v_expected, 1e-6));
+    
+    // Also verify transform() method gives same result
+    std::array<double, 3> v_n_method = n_q_b.transform(v_b);
+    assert(array_equal(v_n, v_n_method, 1e-6));
     
     std::cout << "  ✓ Vector frame transformation test passed" << std::endl;
 }
@@ -134,7 +138,7 @@ void test_inverse_transformation() {
     Quat n_q_b = Quat::from_euler(euler);  // nav from body
     
     std::array<double, 3> v_b_original{1.0, 2.0, 3.0};
-    std::array<double, 3> v_n = n_q_b.transform(v_b_original);  // express in nav
+    std::array<double, 3> v_n = n_q_b * v_b_original;  // express in nav using * operator
     std::array<double, 3> v_b_back = n_q_b.transform_inverse(v_n);  // express back in body
     
     assert(array_equal(v_b_original, v_b_back, 1e-6));
@@ -152,9 +156,9 @@ void test_quaternion_multiplication() {
     
     Quat q_combined = q1 * q2;  // Compose rotations
     
-    // Check that it's equivalent to 180° rotation
+    // Check that it's equivalent to 180° rotation using * operator
     std::array<double, 3> v_in{1.0, 0.0, 0.0};
-    std::array<double, 3> v_out = q_combined.transform(v_in);
+    std::array<double, 3> v_out = q_combined * v_in;  // Use * operator for vector
     std::array<double, 3> v_expected{-1.0, 0.0, 0.0};
     
     assert(array_equal(v_out, v_expected, 1e-6));
@@ -198,12 +202,12 @@ void test_frame_explicit_composition() {
     // Test with a vector
     std::array<double, 3> v_b{1.0, 2.0, 3.0};
     
-    // Transform directly
-    std::array<double, 3> v_n_direct = n_q_b.transform(v_b);
+    // Transform directly using * operator
+    std::array<double, 3> v_n_direct = n_q_b * v_b;
     
-    // Transform step by step
-    std::array<double, 3> v_i = i_q_b.transform(v_b);
-    std::array<double, 3> v_n_steps = n_q_i.transform(v_i);
+    // Transform step by step using * operator
+    std::array<double, 3> v_i = i_q_b * v_b;
+    std::array<double, 3> v_n_steps = n_q_i * v_i;
     
     assert(array_equal(v_n_direct, v_n_steps, 1e-6));
     

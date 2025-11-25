@@ -34,10 +34,10 @@
  * =====================
  * For a quaternion b_q_a:
  * - Expresses vectors from frame 'a' in frame 'b' coordinates
- * - Usage: v_b = b_q_a.transform(v_a)
+ * - Usage: v_b = b_q_a * v_a (using * operator)
  * - Example: n_q_b expresses body frame vectors in navigation frame coordinates
  * 
- * Important: transform() changes the coordinate representation, NOT the physical vector.
+ * Important: The * operator changes the coordinate representation, NOT the physical vector.
  * The same physical vector is expressed in different coordinate frames.
  * 
  * Quaternion composition: c_q_a = c_q_b * b_q_a
@@ -56,24 +56,24 @@
  * Example 1: Convert Euler angles to quaternion
  * ```cpp
  * std::array<double, 3> euler{0.1, 0.2, 0.3};  // [roll, pitch, yaw]
- * quat n_q_b = quat::from_euler(euler);
+ * Quat n_q_b = Quat::from_euler(euler);
  * ```
  * 
  * Example 2: Express a vector from body to navigation frame
  * ```cpp
  * std::array<double, 3> v_b{1.0, 0.0, 0.0};  // Vector in body frame
- * quat n_q_b = quat::from_euler(euler);
- * std::array<double, 3> v_n = n_q_b.transform(v_b);  // Same vector in nav frame
+ * Quat n_q_b = Quat::from_euler(euler);
+ * std::array<double, 3> v_n = n_q_b * v_b;  // Same vector in nav frame using * operator
  * ```
  * 
  * Example 3: Compose transformations
  * ```cpp
  * // Transform from body to intermediate, then to navigation
- * quat i_q_b = ...;  // body to intermediate
- * quat n_q_i = ...;  // intermediate to navigation
- * quat n_q_b = n_q_i * i_q_b;  // composed transformation
+ * Quat i_q_b = ...;  // body to intermediate
+ * Quat n_q_i = ...;  // intermediate to navigation
+ * Quat n_q_b = n_q_i * i_q_b;  // composed transformation
  * 
- * // Use it: v_n = n_q_b.transform(v_b)
+ * // Use it: v_n = n_q_b * v_b
  * ```
  */
 

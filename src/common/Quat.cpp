@@ -76,6 +76,37 @@ Quat Quat::operator*(const Quat& other) const {
     return Quat(x, y, z, w);
 }
 
+std::array<double, 3> Quat::operator*(const std::array<double, 3>& v) const {
+    // Transform vector to different frame: v' = q * v * q^(-1)
+    // Using the formula: v' = v + 2*w*(q_xyz × v) + 2*q_xyz × (q_xyz × v)
+    
+    const double qx = data_[0];
+    const double qy = data_[1];
+    const double qz = data_[2];
+    const double qw = data_[3];
+    
+    const double vx = v[0];
+    const double vy = v[1];
+    const double vz = v[2];
+    
+    // First cross product: q_xyz × v
+    const double cx = qy * vz - qz * vy;
+    const double cy = qz * vx - qx * vz;
+    const double cz = qx * vy - qy * vx;
+    
+    // Second cross product: q_xyz × (q_xyz × v)
+    const double ccx = qy * cz - qz * cy;
+    const double ccy = qz * cx - qx * cz;
+    const double ccz = qx * cy - qy * cx;
+    
+    // Final result: v + 2*w*(q_xyz × v) + 2*(q_xyz × (q_xyz × v))
+    return {
+        vx + 2.0 * (qw * cx + ccx),
+        vy + 2.0 * (qw * cy + ccy),
+        vz + 2.0 * (qw * cz + ccz)
+    };
+}
+
 std::array<std::array<double, 3>, 3> Quat::to_rotation_matrix() const {
     const double qx = data_[0];
     const double qy = data_[1];

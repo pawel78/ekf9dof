@@ -14,7 +14,7 @@
  * - Frame-explicit operations for navigation purposes
  * 
  * Naming convention: b_q_a represents a quaternion that expresses
- * vectors from frame 'a' in frame 'b', i.e., v_b = b_q_a.transform(v_a)
+ * vectors from frame 'a' in frame 'b', i.e., v_b = b_q_a * v_a
  * 
  * Note: This transforms the coordinate representation, not the physical vector.
  * The same physical vector is expressed in different coordinate frames.
@@ -27,11 +27,11 @@
  * 
  * Frame convention: For a quaternion b_q_a:
  * - Expresses vectors from frame 'a' in frame 'b' coordinates
- * - Usage: v_b = b_q_a.transform(v_a)
+ * - Usage: v_b = b_q_a * v_a (or v_b = b_q_a.transform(v_a))
  * - Example: n_q_b expresses body frame vectors in navigation frame
  * 
  * Important distinction:
- * - transform(): Expresses the same physical vector in different coordinates
+ * - transform() / operator*: Expresses the same physical vector in different coordinates
  * - NOT a rotation: The vector's physical direction doesn't change
  */
 class Quat {
@@ -140,6 +140,19 @@ public:
      * @return Product quaternion
      */
     Quat operator*(const Quat& other) const;
+
+    /**
+     * @brief Transform a vector using the * operator
+     * 
+     * Expresses a vector in a different coordinate frame.
+     * Frame-explicit usage: v_b = b_q_a * v_a
+     * 
+     * This is equivalent to transform() but uses operator syntax for clarity.
+     * 
+     * @param v 3D vector in frame 'a' as array [x, y, z]
+     * @return Same vector expressed in frame 'b' as array [x, y, z]
+     */
+    std::array<double, 3> operator*(const std::array<double, 3>& v) const;
 
     /**
      * @brief Convert quaternion to 3x3 rotation matrix
