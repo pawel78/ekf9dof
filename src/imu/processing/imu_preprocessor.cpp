@@ -8,21 +8,16 @@
 
 void IMUPreprocessor::estimate_gyro_bias()
 {   
-    double sum_gx = 0.0;
-    double sum_gy = 0.0;
-    double sum_gz = 0.0;
-    int sample_count = 0;   
-
     if (stationary_gyro_cal_) {
-        sum_gx += yg_[0];
-        sum_gy += yg_[1];
-        sum_gz += yg_[2];
-        sample_count++;
+        sum_gx_ += yg_[0];
+        sum_gy_ += yg_[1];
+        sum_gz_ += yg_[2];
+        sample_count_++;
         
-        if (sample_count >= 1000) { // Collect 1000 samples
-            gyro_bias_[0] = sum_gx / sample_count;
-            gyro_bias_[1] = sum_gy / sample_count;
-            gyro_bias_[2] = sum_gz / sample_count;
+        if (sample_count_ >= 1000) { // Collect 1000 samples
+            gyro_bias_[0] = sum_gx_ / sample_count_;
+            gyro_bias_[1] = sum_gy_ / sample_count_;
+            gyro_bias_[2] = sum_gz_ / sample_count_;
             stationary_gyro_cal_ = false;
             std::cout << "Gyro bias estimated: "
                       << "gx_bias=" << gyro_bias_[0]
@@ -99,31 +94,34 @@ IMUPreprocessor::IMUPreprocessor()
     : running_(false)
 {
 
-    std::array<float, 3> ym_ = {0.0f, 0.0f, 0.0f};
-    std::array<float, 3> ya_ = {0.0f, 0.0f, 0.0f};
-    std::array<float, 3> yg_ = {0.0f, 0.0f, 0.0f};
+    ym_ = {0.0f, 0.0f, 0.0f};
+    ya_ = {0.0f, 0.0f, 0.0f};
+    yg_ = {0.0f, 0.0f, 0.0f};
 
-    std::array<float, 3> mag_bias_ = {0.0f, 0.0f, 0.0f};
-    std::array<float, 9> mag_matrix_ = {1.0f, 0.0f, 0.0f,
+    mag_bias_ = {0.0f, 0.0f, 0.0f};
+    mag_matrix_ = {1.0f, 0.0f, 0.0f,
                                         0.0f, 1.0f, 0.0f,
                                         0.0f, 0.0f, 1.0f};
-    bool mag_calibration_loaded_ = false;
+    mag_calibration_loaded_ = false;
 
-    std::array<float, 3> accel_bias_ = {0.0f, 0.0f, 0.0f};
-    std::array<float, 9> accel_matrix_ = {1.0f, 0.0f, 0.0f,
+    accel_bias_ = {0.0f, 0.0f, 0.0f};
+    accel_matrix_ = {1.0f, 0.0f, 0.0f,
                                           0.0f, 1.0f, 0.0f,
                                           0.0f, 0.0f, 1.0f};
-    bool accel_calibration_loaded_ = false;
+    accel_calibration_loaded_ = false;
 
-    std::array<float, 3> gyro_bias_ = {0.0f, 0.0f, 0.0f};
-    std::array<float, 9> gyro_matrix_ = {1.0f, 0.0f, 0.0f,
+    gyro_bias_ = {0.0f, 0.0f, 0.0f};
+    gyro_matrix_ = {1.0f, 0.0f, 0.0f,
                                          0.0f, 1.0f, 0.0f,
                                          0.0f, 0.0f, 1.0f};
-    bool gyro_calibration_loaded_ = false;
+    gyro_calibration_loaded_ = false;
+    calibration_loaded_ = false;
 
-    bool calibration_loaded_ = false;
-
-    bool stationary_gyro_cal_ = true;
+    stationary_gyro_cal_ = true;
+    sum_gx_ = 0.0;
+    sum_gy_ = 0.0;
+    sum_gz_ = 0.0;
+    sample_count_ = 0;  
 
     // Try to load magnetometer calibration
     if (config_loader::load_mag_calibration("../configs/config.yaml", mag_bias_, mag_matrix_))
@@ -293,6 +291,6 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
         }
 
         // Just sleep, processing is done on-demand in get_measurement functions
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }

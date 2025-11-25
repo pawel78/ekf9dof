@@ -32,6 +32,11 @@ private:
     std::array<float, 9> gyro_matrix_;
     bool gyro_calibration_loaded_;
 
+    double sum_gx_;
+    double sum_gy_;
+    double sum_gz_;
+    int sample_count_;   
+
     // Overall calibration loaded flag
     bool calibration_loaded_;
     bool stationary_gyro_cal_;
