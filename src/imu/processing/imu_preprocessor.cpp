@@ -6,6 +6,31 @@
 #include <chrono>
 #include <iomanip>
 
+void IMUPreprocessor::estimate_gyro_bias()
+{   
+    double sum_gx = 0.0;
+    double sum_gy = 0.0;
+    double sum_gz = 0.0;
+    int sample_count = 0;   
+
+    if (stationary_gyro_cal_) {
+        sum_gx += yg_[0];
+        sum_gy += yg_[1];
+        sum_gz += yg_[2];
+        sample_count++;
+        
+        if (sample_count >= 1000) { // Collect 1000 samples
+            gyro_bias_[0] = sum_gx / sample_count;
+            gyro_bias_[1] = sum_gy / sample_count;
+            gyro_bias_[2] = sum_gz / sample_count;
+            stationary_gyro_cal_ = false;
+            std::cout << "Gyro bias estimated: "
+                      << "gx_bias=" << gyro_bias_[0]
+                      << ", gy_bias=" << gyro_bias_[1]
+                      << ", gz_bias=" << gyro_bias_[2] << "\n";
+        }   
+    }
+}
 void IMUPreprocessor::apply_mag_calibration(float mx_raw, float my_raw, float mz_raw, float &mx_cal, float &my_cal, float &mz_cal)
 {
     if (!mag_calibration_loaded_)
@@ -97,6 +122,8 @@ IMUPreprocessor::IMUPreprocessor()
     bool gyro_calibration_loaded_ = false;
 
     bool calibration_loaded_ = false;
+
+    bool stationary_gyro_cal_ = true;
 
     // Try to load magnetometer calibration
     if (config_loader::load_mag_calibration("../configs/config.yaml", mag_bias_, mag_matrix_))
@@ -246,6 +273,10 @@ void IMUPreprocessor::stop()
 void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
 {
     std::cout << "IMU Preprocessor thread running.\n";
+    
+    if (preprocessor->stationary_gyro_cal_) {
+        std::cout << "Gyro bias estimation enabled. Ensure the IMU is stationary.\n";
+    }   
 
     while (preprocessor->running_.load())
     {
@@ -257,10 +288,9 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
         float mx, my, mz;
         preprocessor->get_mag_measurement(mx, my, mz);
 
-        std::cout << std::fixed << std::setprecision(2)
-                  << "A(" << ax << "," << ay << "," << az << ") "
-                  << "G(" << gx << "," << gy << "," << gz << ") "
-                  << "M(" << mx << "," << my << "," << mz << ")\n";
+        if (preprocessor->stationary_gyro_cal_) {
+            preprocessor->estimate_gyro_bias();
+        }
 
         // Just sleep, processing is done on-demand in get_measurement functions
         std::this_thread::sleep_for(std::chrono::milliseconds(500));

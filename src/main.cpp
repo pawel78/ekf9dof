@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
         }
        
         // Start the IMU preprocessor (spawns internal thread)
-        // imu_preprocessor.start();
+        imu_preprocessor.start();
 
         // Wait for shutdown signal
         while (g_running.load())

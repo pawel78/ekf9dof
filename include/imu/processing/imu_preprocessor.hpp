@@ -34,8 +34,10 @@ private:
 
     // Overall calibration loaded flag
     bool calibration_loaded_;
+    bool stationary_gyro_cal_;
 
     // Calibration application methods
+    void estimate_gyro_bias();
     void apply_mag_calibration(float mx_raw, float my_raw, float mz_raw, float &mx_cal, float &my_cal, float &mz_cal);
     void apply_accel_calibration(float ax_raw, float ay_raw, float az_raw, float &ax_cal, float &ay_cal, float &az_cal);
     void apply_gyro_calibration(float gx_raw, float gy_raw, float gz_raw, float &gx_cal, float &gy_cal, float &gz_cal);
