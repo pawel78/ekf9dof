@@ -140,7 +140,7 @@ int main(int argc, char* argv[])
         }
        
         // Start the IMU preprocessor (spawns internal thread)
-        // imu_preprocessor.start();
+        imu_preprocessor.start();
 
         // Wait for shutdown signal
         while (g_running.load())
@@ -150,7 +150,7 @@ int main(int argc, char* argv[])
 
         // Cleanup
         std::cout << "\nShutting down...\n";
-        // imu_preprocessor.stop();
+        imu_preprocessor.stop();
         if (enable_logging) {
             imu_driver.set_data_logging(false);
         }

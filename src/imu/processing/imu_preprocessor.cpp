@@ -6,6 +6,33 @@
 #include <chrono>
 #include <iomanip>
 
+void IMUPreprocessor::estimate_gyro_bias()
+{   
+    if (!stationary_gyro_cal_) {
+        return; // Already estimated
+    }
+    
+    // Accumulate raw gyro readings (yg_ contains raw data during estimation)
+    sum_gx_ += yg_[0];
+    sum_gy_ += yg_[1];
+    sum_gz_ += yg_[2];
+    sample_count_++;
+    
+    // Print progress every 200 samples
+    if (sample_count_ % 200 == 0) {
+        std::cout << "  Gyro bias estimation: " << sample_count_ << "/1000 samples...\n";
+    }
+    
+    if (sample_count_ >= 1000) { // Collect 1000 samples
+        gyro_bias_[0] = sum_gx_ / sample_count_;
+        gyro_bias_[1] = sum_gy_ / sample_count_;
+        gyro_bias_[2] = sum_gz_ / sample_count_;
+        stationary_gyro_cal_ = false;
+        gyro_calibration_loaded_ = true; // Enable bias correction
+        std::cout << "✓ Gyro bias estimated from " << sample_count_ << " samples:\n";
+        std::cout << "  Bias: [" << gyro_bias_[0] << ", " << gyro_bias_[1] << ", " << gyro_bias_[2] << "]\n";
+    }   
+}
 void IMUPreprocessor::apply_mag_calibration(float mx_raw, float my_raw, float mz_raw, float &mx_cal, float &my_cal, float &mz_cal)
 {
     if (!mag_calibration_loaded_)
@@ -51,14 +78,6 @@ void IMUPreprocessor::apply_accel_calibration(float ax_raw, float ay_raw, float 
 void IMUPreprocessor::apply_gyro_calibration(float gx_raw, float gy_raw, float gz_raw,
                                              float &gx_cal, float &gy_cal, float &gz_cal)
 {
-    if (!gyro_calibration_loaded_)
-    {
-        gx_cal = gx_raw;
-        gy_cal = gy_raw;
-        gz_cal = gz_raw;
-        return;
-    }
-
     // Apply hard iron correction (subtract bias)
     float gx_bias_corrected = gx_raw - gyro_bias_[0];
     float gy_bias_corrected = gy_raw - gyro_bias_[1];
@@ -74,29 +93,34 @@ IMUPreprocessor::IMUPreprocessor()
     : running_(false)
 {
 
-    std::array<float, 3> ym_ = {0.0f, 0.0f, 0.0f};
-    std::array<float, 3> ya_ = {0.0f, 0.0f, 0.0f};
-    std::array<float, 3> yg_ = {0.0f, 0.0f, 0.0f};
+    ym_ = {0.0f, 0.0f, 0.0f};
+    ya_ = {0.0f, 0.0f, 0.0f};
+    yg_ = {0.0f, 0.0f, 0.0f};
 
-    std::array<float, 3> mag_bias_ = {0.0f, 0.0f, 0.0f};
-    std::array<float, 9> mag_matrix_ = {1.0f, 0.0f, 0.0f,
+    mag_bias_ = {0.0f, 0.0f, 0.0f};
+    mag_matrix_ = {1.0f, 0.0f, 0.0f,
                                         0.0f, 1.0f, 0.0f,
                                         0.0f, 0.0f, 1.0f};
-    bool mag_calibration_loaded_ = false;
+    mag_calibration_loaded_ = false;
 
-    std::array<float, 3> accel_bias_ = {0.0f, 0.0f, 0.0f};
-    std::array<float, 9> accel_matrix_ = {1.0f, 0.0f, 0.0f,
+    accel_bias_ = {0.0f, 0.0f, 0.0f};
+    accel_matrix_ = {1.0f, 0.0f, 0.0f,
                                           0.0f, 1.0f, 0.0f,
                                           0.0f, 0.0f, 1.0f};
-    bool accel_calibration_loaded_ = false;
+    accel_calibration_loaded_ = false;
 
-    std::array<float, 3> gyro_bias_ = {0.0f, 0.0f, 0.0f};
-    std::array<float, 9> gyro_matrix_ = {1.0f, 0.0f, 0.0f,
+    gyro_bias_ = {0.0f, 0.0f, 0.0f};
+    gyro_matrix_ = {1.0f, 0.0f, 0.0f,
                                          0.0f, 1.0f, 0.0f,
                                          0.0f, 0.0f, 1.0f};
-    bool gyro_calibration_loaded_ = false;
+    gyro_calibration_loaded_ = false;
+    calibration_loaded_ = false;
 
-    bool calibration_loaded_ = false;
+    stationary_gyro_cal_ = true;
+    sum_gx_ = 0.0;
+    sum_gy_ = 0.0;
+    sum_gz_ = 0.0;
+    sample_count_ = 0;  
 
     // Try to load magnetometer calibration
     if (config_loader::load_mag_calibration("../configs/config.yaml", mag_bias_, mag_matrix_))
@@ -122,16 +146,18 @@ IMUPreprocessor::IMUPreprocessor()
         std::cout << "⚠ No accelerometer calibration found (using identity)\n";
     }
 
-    // Try to load magnetometer calibration
+    // Try to load gyroscope calibration
     if (config_loader::load_gyro_calibration("../configs/config.yaml", gyro_bias_, gyro_matrix_))
     {
         gyro_calibration_loaded_ = true;
         std::cout << "✓ Gyroscope calibration loaded\n";
         std::cout << "  Bias: [" << gyro_bias_[0] << ", " << gyro_bias_[1] << ", " << gyro_bias_[2] << "]\n";
+        std::cout << "  → Will also estimate gyro bias on startup (keep IMU stationary!)\n";
     }
     else
     {
-        std::cout << "⚠ No gyroscope calibration found (using identity)\n";
+        std::cout << "⚠ No gyroscope calibration found\n";
+        std::cout << "  → Will estimate gyro bias on startup (keep IMU stationary!)\n";
     }
 
     // Overall calibration status
@@ -168,23 +194,29 @@ void IMUPreprocessor::get_gyro_calibration(std::array<float, 3> &bias, std::arra
 void IMUPreprocessor::get_gyro_measurement(float &gx, float &gy, float &gz)
 {
     // Try to read gyro from channel
-    bool have_data = false;
     imu::messages::raw_gyro_msg_t gyro{0, 0, 0, 0};
-    if (imu::channels::raw_gyro.try_receive(gyro))
-        have_data = true;
+    bool have_data = imu::channels::raw_gyro.try_receive(gyro);
 
-    apply_gyro_calibration(gyro.x, gyro.y, gyro.z, yg_[0], yg_[1], yg_[2]);
+    // During bias estimation, use raw values; after, apply calibration
+    if (stationary_gyro_cal_) {
+        // Store raw values for bias estimation
+        yg_[0] = gyro.x;
+        yg_[1] = gyro.y;
+        yg_[2] = gyro.z;
+    } else {
+        // Apply calibration after bias is estimated
+        apply_gyro_calibration(gyro.x, gyro.y, gyro.z, yg_[0], yg_[1], yg_[2]);
+    }
+    
     gx = yg_[0];
     gy = yg_[1];
     gz = yg_[2];
 }
 void IMUPreprocessor::get_accel_measurement(float &ax, float &ay, float &az)
 {
-    // Try to read gyro from channel
-    bool have_data = false;
+    // Try to read accel from channel
     imu::messages::raw_accel_msg_t accel{0, 0, 0, 0};
-    if (imu::channels::raw_accel.try_receive(accel))
-        have_data = true;
+    bool have_data = imu::channels::raw_accel.try_receive(accel);
 
     apply_accel_calibration(accel.x, accel.y, accel.z, ya_[0], ya_[1], ya_[2]);
     ax = ya_[0];
@@ -194,11 +226,10 @@ void IMUPreprocessor::get_accel_measurement(float &ax, float &ay, float &az)
 
 void IMUPreprocessor::get_mag_measurement(float &mx, float &my, float &mz)
 {
-    // Try to read gyro from channel
-    bool have_data = false;
+    // Try to read mag from channel
     imu::messages::raw_mag_msg_t mag{0, 0, 0, 0};
-    if (imu::channels::raw_mag.try_receive(mag))
-        have_data = true;
+    bool have_data = imu::channels::raw_mag.try_receive(mag);
+    
     apply_mag_calibration(mag.x, mag.y, mag.z, ym_[0], ym_[1], ym_[2]);
     mx = ym_[0];
     my = ym_[1];
@@ -246,6 +277,10 @@ void IMUPreprocessor::stop()
 void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
 {
     std::cout << "IMU Preprocessor thread running.\n";
+    
+    if (preprocessor->stationary_gyro_cal_) {
+        std::cout << "Gyro bias estimation enabled. Ensure the IMU is stationary.\n";
+    }   
 
     while (preprocessor->running_.load())
     {
@@ -257,12 +292,12 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
         float mx, my, mz;
         preprocessor->get_mag_measurement(mx, my, mz);
 
-        std::cout << std::fixed << std::setprecision(2)
-                  << "A(" << ax << "," << ay << "," << az << ") "
-                  << "G(" << gx << "," << gy << "," << gz << ") "
-                  << "M(" << mx << "," << my << "," << mz << ")\n";
+        if (preprocessor->stationary_gyro_cal_) {
+            preprocessor->estimate_gyro_bias();
+        }
 
-        // Just sleep, processing is done on-demand in get_measurement functions
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        // Sleep 10ms for ~100Hz sampling during bias estimation, slower after
+        int sleep_ms = preprocessor->stationary_gyro_cal_ ? 10 : 100;
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
     }
 }
