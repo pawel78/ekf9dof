@@ -5,34 +5,35 @@
 #include <atomic>
 #include <thread>
 #include <chrono>
+#include <cstring>
 #include <nng/nng.h>
 #include <nng/protocol/pubsub0/pub.h>
 #include <nng/protocol/pubsub0/sub.h>
-#include <google/protobuf/message.h>
 
 namespace channel {
 
 /**
- * @brief NNG-based pub/sub channel with protobuf serialization
+ * @brief NNG-based pub/sub channel with raw struct serialization
  *
  * This class provides inter-process communication using nanomsg-next-gen (nng)
- * pub/sub sockets with protobuf message serialization.
+ * pub/sub sockets with raw C++ struct serialization.
  *
  * Template parameters:
- *   T - The C++ message type (must have corresponding proto type)
- *   ProtoT - The protobuf message type
+ *   T - The C++ message type (must be trivially copyable POD struct)
  *
  * Usage:
  *   // Publisher side
- *   NngChannel<raw_accel_msg_t, RawAccelMsg> pub_channel("ipc:///tmp/accel.ipc", true);
+ *   NngChannel<raw_accel_msg_t> pub_channel("ipc:///tmp/accel.ipc", true);
  *   pub_channel.send(accel_msg);
  *
  *   // Subscriber side
- *   NngChannel<raw_accel_msg_t, RawAccelMsg> sub_channel("ipc:///tmp/accel.ipc", false);
+ *   NngChannel<raw_accel_msg_t> sub_channel("ipc:///tmp/accel.ipc", false);
  *   auto msg = sub_channel.receive();
  */
-template <typename T, typename ProtoT>
+template <typename T>
 class NngChannel {
+    static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable for raw serialization");
+    
 public:
     /**
      * @brief Construct an NNG channel
@@ -128,17 +129,7 @@ public:
             return false;
         }
 
-        ProtoT proto_msg;
-        to_proto(data, proto_msg);
-
-        std::string serialized;
-        if (!proto_msg.SerializeToString(&serialized)) {
-            return false;
-        }
-
-        // nng_send API takes void* because it may free the buffer with NNG_FLAG_ALLOC.
-        // Without that flag (our case), it only copies the data and doesn't modify it.
-        int rv = nng_send(socket_, serialized.data(), serialized.size(), 0);
+        int rv = nng_send(socket_, static_cast<void*>(const_cast<T*>(&data)), sizeof(T), 0);
         return rv == 0;
     }
 
@@ -159,16 +150,14 @@ public:
             return std::nullopt;
         }
 
-        ProtoT proto_msg;
-        bool parsed = proto_msg.ParseFromArray(buf, static_cast<int>(sz));
-        nng_free(buf, sz);
-
-        if (!parsed) {
+        if (sz != sizeof(T)) {
+            nng_free(buf, sz);
             return std::nullopt;
         }
 
         T data;
-        from_proto(proto_msg, data);
+        std::memcpy(&data, buf, sizeof(T));
+        nng_free(buf, sz);
         return data;
     }
 
@@ -190,15 +179,13 @@ public:
             return false;
         }
 
-        ProtoT proto_msg;
-        bool parsed = proto_msg.ParseFromArray(buf, static_cast<int>(sz));
-        nng_free(buf, sz);
-
-        if (!parsed) {
+        if (sz != sizeof(T)) {
+            nng_free(buf, sz);
             return false;
         }
 
-        from_proto(proto_msg, data);
+        std::memcpy(&data, buf, sizeof(T));
+        nng_free(buf, sz);
         return true;
     }
 
@@ -238,10 +225,6 @@ private:
     std::string url_;
     bool is_publisher_;
     std::atomic<bool> closed_;
-
-    // These must be specialized for each message type pair
-    static void to_proto(const T& src, ProtoT& dst);
-    static void from_proto(const ProtoT& src, T& dst);
 };
 
 } // namespace channel

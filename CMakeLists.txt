@@ -19,9 +19,9 @@ endif()
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 # ============================================================================
-# Optional NNG + Protobuf support for inter-process communication
+# Optional NNG support for inter-process communication
 # ============================================================================
-option(USE_NNG_CHANNEL "Enable NNG-based pub/sub channels with protobuf" OFF)
+option(USE_NNG_CHANNEL "Enable NNG-based pub/sub channels" OFF)
 
 if(USE_NNG_CHANNEL)
     include(FetchContent)
@@ -36,19 +36,7 @@ if(USE_NNG_CHANNEL)
     set(NNG_TOOLS OFF CACHE BOOL "" FORCE)
     FetchContent_MakeAvailable(nng)
 
-    # Find protobuf
-    find_package(Protobuf REQUIRED)
-
-    # Generate protobuf C++ sources
-    set(PROTO_FILES ${CMAKE_CURRENT_SOURCE_DIR}/proto/imu_messages.proto)
-    protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
-
-    # Create a library for protobuf-generated code
-    add_library(imu_proto ${PROTO_SRCS} ${PROTO_HDRS})
-    target_include_directories(imu_proto PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-    target_link_libraries(imu_proto PUBLIC protobuf::libprotobuf)
-
-    message(STATUS "NNG + Protobuf support enabled")
+    message(STATUS "NNG support enabled")
 endif()
 
 # Common library source files (excluding main executables)
