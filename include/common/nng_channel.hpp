@@ -6,6 +6,7 @@
 #include <thread>
 #include <chrono>
 #include <cstring>
+#include <stdexcept>
 #include <nng/nng.h>
 #include <nng/protocol/pubsub0/pub.h>
 #include <nng/protocol/pubsub0/sub.h>

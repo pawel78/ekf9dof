@@ -3,6 +3,11 @@
 #include <cstdint>
 #include <atomic>
 #include <thread>
+#include <memory>
+
+#ifdef USE_NNG_CHANNEL
+#include "imu/messages/nng_imu_channels.hpp"
+#endif
 
 
 class IMUPreprocessor
@@ -40,6 +45,14 @@ private:
     // Overall calibration loaded flag
     bool calibration_loaded_;
     bool stationary_gyro_cal_;
+
+#ifdef USE_NNG_CHANNEL
+    // NNG subscriber channels for inter-process communication
+    std::unique_ptr<imu::NngRawGyroChannel> nng_gyro_sub_;
+    std::unique_ptr<imu::NngRawAccelChannel> nng_accel_sub_;
+    std::unique_ptr<imu::NngRawMagChannel> nng_mag_sub_;
+    std::unique_ptr<imu::NngRawTempChannel> nng_temp_sub_;
+#endif
 
     // Calibration application methods
     void estimate_gyro_bias();

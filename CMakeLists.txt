@@ -61,6 +61,12 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+# Link NNG library if enabled
+if(USE_NNG_CHANNEL)
+    target_link_libraries(${PROJECT_NAME} PRIVATE nng)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE USE_NNG_CHANNEL)
+endif()
+
 # ============================================================================
 # Offline Tools
 # ============================================================================

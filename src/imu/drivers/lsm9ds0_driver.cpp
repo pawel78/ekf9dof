@@ -246,7 +246,11 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
             latest_gz = gz_dps;
 
             imu::messages::raw_gyro_msg_t gyro_msg{timestamp, gx, gy, gz};
+#ifdef USE_NNG_CHANNEL
+            if (!driver->nng_gyro_pub_->send(gyro_msg))
+#else
             if (!imu::channels::raw_gyro.send(gyro_msg))
+#endif
             {
                 std::cerr << "ERROR: Gyro channel closed\n"
                           << std::flush;
@@ -291,7 +295,11 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
                 }
 
                 imu::messages::raw_accel_msg_t accel_msg{timestamp, ax, ay, az};
+#ifdef USE_NNG_CHANNEL
+                if (!driver->nng_accel_pub_->send(accel_msg))
+#else
                 if (!imu::channels::raw_accel.send(accel_msg))
+#endif
                 {
                     std::cerr << "ERROR: Accel channel closed\n"
                               << std::flush;
@@ -334,7 +342,11 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
                 latest_mz = mz;
 
                 imu::messages::raw_mag_msg_t mag_msg{timestamp, mx, my, mz};
+#ifdef USE_NNG_CHANNEL
+                if (!driver->nng_mag_pub_->send(mag_msg))
+#else
                 if (!imu::channels::raw_mag.send(mag_msg))
+#endif
                 {
                     std::cerr << "ERROR: Mag channel closed\n"
                               << std::flush;
@@ -372,7 +384,11 @@ void LSM9DS0Driver::driver_thread_func(LSM9DS0Driver *driver)
                 latest_temp = temp_c;
 
                 imu::messages::raw_temp_msg_t temp_msg{timestamp, temp_c};
+#ifdef USE_NNG_CHANNEL
+                if (!driver->nng_temp_pub_->send(temp_msg))
+#else
                 if (!imu::channels::raw_temp.send(temp_msg))
+#endif
                 {
                     std::cerr << "ERROR: Temp channel closed\n"
                               << std::flush;
@@ -464,6 +480,16 @@ LSM9DS0Driver::LSM9DS0Driver(const char *i2c_device_path)
     // Configure IMU
     configure_imu();
     std::cout << "✓ IMU configured\n";
+
+#ifdef USE_NNG_CHANNEL
+    // Initialize NNG publisher channels
+    std::cout << "Initializing NNG publisher channels...\n";
+    nng_gyro_pub_ = std::make_unique<imu::NngRawGyroChannel>(imu::nng_urls::RAW_GYRO, true);
+    nng_accel_pub_ = std::make_unique<imu::NngRawAccelChannel>(imu::nng_urls::RAW_ACCEL, true);
+    nng_mag_pub_ = std::make_unique<imu::NngRawMagChannel>(imu::nng_urls::RAW_MAG, true);
+    nng_temp_pub_ = std::make_unique<imu::NngRawTempChannel>(imu::nng_urls::RAW_TEMP, true);
+    std::cout << "✓ NNG publisher channels initialized\n";
+#endif
 }
 
 LSM9DS0Driver::~LSM9DS0Driver()
@@ -473,6 +499,14 @@ LSM9DS0Driver::~LSM9DS0Driver()
     if (log_file_accel_.is_open()) log_file_accel_.close();
     if (log_file_mag_.is_open()) log_file_mag_.close();
     if (log_file_temp_.is_open()) log_file_temp_.close();
+
+#ifdef USE_NNG_CHANNEL
+    // Close NNG channels
+    if (nng_gyro_pub_) nng_gyro_pub_->close();
+    if (nng_accel_pub_) nng_accel_pub_->close();
+    if (nng_mag_pub_) nng_mag_pub_->close();
+    if (nng_temp_pub_) nng_temp_pub_->close();
+#endif
 }
 
 void LSM9DS0Driver::start()

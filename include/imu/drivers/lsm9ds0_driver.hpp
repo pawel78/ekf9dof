@@ -9,6 +9,10 @@
 #include "common/channel_types.hpp"
 #include "common/i2c_device.hpp"
 
+#ifdef USE_NNG_CHANNEL
+#include "imu/messages/nng_imu_channels.hpp"
+#endif
+
 /**
  * @brief LSM9DS0 IMU Driver Class
  * 
@@ -237,4 +241,12 @@ private:
     std::ofstream log_file_mag_;
     std::ofstream log_file_temp_;
     std::mutex log_mutex_;
+
+#ifdef USE_NNG_CHANNEL
+    // NNG publisher channels for inter-process communication
+    std::unique_ptr<imu::NngRawGyroChannel> nng_gyro_pub_;
+    std::unique_ptr<imu::NngRawAccelChannel> nng_accel_pub_;
+    std::unique_ptr<imu::NngRawMagChannel> nng_mag_pub_;
+    std::unique_ptr<imu::NngRawTempChannel> nng_temp_pub_;
+#endif
 };

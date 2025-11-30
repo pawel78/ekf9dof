@@ -169,11 +169,29 @@ IMUPreprocessor::IMUPreprocessor()
     {
         calibration_loaded_ = false;
     }
+
+#ifdef USE_NNG_CHANNEL
+    // Initialize NNG subscriber channels
+    std::cout << "Initializing NNG subscriber channels...\n";
+    nng_gyro_sub_ = std::make_unique<imu::NngRawGyroChannel>(imu::nng_urls::RAW_GYRO, false);
+    nng_accel_sub_ = std::make_unique<imu::NngRawAccelChannel>(imu::nng_urls::RAW_ACCEL, false);
+    nng_mag_sub_ = std::make_unique<imu::NngRawMagChannel>(imu::nng_urls::RAW_MAG, false);
+    nng_temp_sub_ = std::make_unique<imu::NngRawTempChannel>(imu::nng_urls::RAW_TEMP, false);
+    std::cout << "✓ NNG subscriber channels initialized\n";
+#endif
 }
 
 IMUPreprocessor::~IMUPreprocessor()
 {
     stop();
+
+#ifdef USE_NNG_CHANNEL
+    // Close NNG channels
+    if (nng_gyro_sub_) nng_gyro_sub_->close();
+    if (nng_accel_sub_) nng_accel_sub_->close();
+    if (nng_mag_sub_) nng_mag_sub_->close();
+    if (nng_temp_sub_) nng_temp_sub_->close();
+#endif
 }
 
 void IMUPreprocessor::get_mag_calibration(std::array<float, 3> &bias, std::array<float, 9> &matrix)
@@ -195,7 +213,11 @@ void IMUPreprocessor::get_gyro_measurement(float &gx, float &gy, float &gz)
 {
     // Try to read gyro from channel
     imu::messages::raw_gyro_msg_t gyro{0, 0, 0, 0};
+#ifdef USE_NNG_CHANNEL
+    bool have_data = nng_gyro_sub_->try_receive(gyro);
+#else
     bool have_data = imu::channels::raw_gyro.try_receive(gyro);
+#endif
 
     // During bias estimation, use raw values; after, apply calibration
     if (stationary_gyro_cal_) {
@@ -216,7 +238,11 @@ void IMUPreprocessor::get_accel_measurement(float &ax, float &ay, float &az)
 {
     // Try to read accel from channel
     imu::messages::raw_accel_msg_t accel{0, 0, 0, 0};
+#ifdef USE_NNG_CHANNEL
+    bool have_data = nng_accel_sub_->try_receive(accel);
+#else
     bool have_data = imu::channels::raw_accel.try_receive(accel);
+#endif
 
     apply_accel_calibration(accel.x, accel.y, accel.z, ya_[0], ya_[1], ya_[2]);
     ax = ya_[0];
@@ -228,7 +254,11 @@ void IMUPreprocessor::get_mag_measurement(float &mx, float &my, float &mz)
 {
     // Try to read mag from channel
     imu::messages::raw_mag_msg_t mag{0, 0, 0, 0};
+#ifdef USE_NNG_CHANNEL
+    bool have_data = nng_mag_sub_->try_receive(mag);
+#else
     bool have_data = imu::channels::raw_mag.try_receive(mag);
+#endif
     
     apply_mag_calibration(mag.x, mag.y, mag.z, ym_[0], ym_[1], ym_[2]);
     mx = ym_[0];
