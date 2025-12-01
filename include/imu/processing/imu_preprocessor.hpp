@@ -22,6 +22,7 @@ private:
     // Magnetometer calibration
     std::array<float, 3> mag_bias_;
     std::array<float, 9> mag_matrix_;
+    float mag_dec_;
     bool mag_calibration_loaded_;
 
     // Accelerometer calibration

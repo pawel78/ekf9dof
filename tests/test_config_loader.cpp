@@ -15,7 +15,8 @@ void test_load_default_config() {
     
     std::array<float, 3> mag_bias;
     std::array<float, 9> mag_matrix;
-    
+    float mag_dec;
+
     // Try multiple possible paths
     bool loaded = false;
     const char* paths[] = {
@@ -25,7 +26,7 @@ void test_load_default_config() {
     };
     
     for (const char* path : paths) {
-        loaded = config_loader::load_mag_calibration(path, mag_bias, mag_matrix);
+        loaded = config_loader::load_mag_calibration(path, mag_bias, mag_matrix, mag_dec);
         if (loaded) {
             std::cout << "  Found config at: " << path << std::endl;
             break;
@@ -67,8 +68,9 @@ void test_load_custom_config() {
     
     std::array<float, 3> mag_bias;
     std::array<float, 9> mag_matrix;
+    float mag_dec;
     
-    bool loaded = config_loader::load_mag_calibration(temp_config, mag_bias, mag_matrix);
+    bool loaded = config_loader::load_mag_calibration(temp_config, mag_bias, mag_matrix, mag_dec);
     
     assert(loaded);
     
@@ -89,8 +91,9 @@ void test_load_nonexistent_file() {
     
     std::array<float, 3> mag_bias;
     std::array<float, 9> mag_matrix;
+    float mag_dec;
     
-    bool loaded = config_loader::load_mag_calibration("/nonexistent/file.yaml", mag_bias, mag_matrix);
+    bool loaded = config_loader::load_mag_calibration("/nonexistent/file.yaml", mag_bias, mag_matrix, mag_dec);
     
     assert(!loaded);
     

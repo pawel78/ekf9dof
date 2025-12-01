@@ -101,6 +101,7 @@ IMUPreprocessor::IMUPreprocessor()
     mag_matrix_ = {1.0f, 0.0f, 0.0f,
                                         0.0f, 1.0f, 0.0f,
                                         0.0f, 0.0f, 1.0f};
+    mag_dec_ = 0.0f;
     mag_calibration_loaded_ = false;
 
     accel_bias_ = {0.0f, 0.0f, 0.0f};
@@ -123,11 +124,12 @@ IMUPreprocessor::IMUPreprocessor()
     sample_count_ = 0;  
 
     // Try to load magnetometer calibration
-    if (config_loader::load_mag_calibration("../configs/config.yaml", mag_bias_, mag_matrix_))
+    if (config_loader::load_mag_calibration("../configs/config.yaml", mag_bias_, mag_matrix_, mag_dec_))
     {
         mag_calibration_loaded_ = true;
         std::cout << "✓ Magnetometer calibration loaded\n";
         std::cout << "  Bias: [" << mag_bias_[0] << ", " << mag_bias_[1] << ", " << mag_bias_[2] << "]\n";
+        std::cout << "  Declination: " << mag_dec_ * (180.0f / 3.14159265358979323846f) << " converted to deg. for display only\n";
     }
     else
     {

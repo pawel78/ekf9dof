@@ -54,7 +54,8 @@ namespace config_loader
 
     bool load_mag_calibration(const std::string &config_path,
                               std::array<float, 3> &mag_bias,
-                              std::array<float, 9> &mag_matrix)
+                              std::array<float, 9> &mag_matrix,
+                              float &mag_declination)
     {
         std::ifstream file(config_path);
         if (!file.is_open())
@@ -64,6 +65,7 @@ namespace config_loader
 
         bool found_bias = false;
         bool found_matrix = false;
+        bool found_declination = false;
         bool in_calibration_section = false;
 
         std::string line;
@@ -103,6 +105,17 @@ namespace config_loader
                 }
             }
 
+            // Look for mag_declination_deg
+            if (line.find("mag_declination_deg:") != std::string::npos)
+            {
+                std::vector<float> values;
+                if (parse_float_array(line, values) && values.size() == 1)
+                {
+                        mag_declination = values[0] * (3.14159265358979323846f / 180.0f); // Convert to radians
+                }
+                found_declination = true;
+            }
+
             // Look for mag_matrix (may span multiple lines)
             if (line.find("mag_matrix:") != std::string::npos)
             {
@@ -135,7 +148,7 @@ namespace config_loader
         }
 
         file.close();
-        return found_bias && found_matrix;
+        return found_bias && found_matrix && found_declination;
     }
 
     bool load_accel_calibration(const std::string &config_path,

@@ -23,7 +23,8 @@ namespace config_loader {
  */
 bool load_mag_calibration(const std::string& config_path,
                           std::array<float, 3>& mag_bias,
-                          std::array<float, 9>& mag_matrix);
+                          std::array<float, 9>& mag_matrix,
+                          float& mag_declination);
 
 bool load_accel_calibration(const std::string& config_path,
                           std::array<float, 3>& mag_bias,
