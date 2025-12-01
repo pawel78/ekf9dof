@@ -6,8 +6,8 @@
 #include <fstream>
 #include <mutex>
 #include <string>
-#include "common/channel_types.hpp"
 #include "common/i2c_device.hpp"
+#include "imu/messages/nng_imu_sockets.hpp"
 
 /**
  * @brief LSM9DS0 IMU Driver Class
@@ -237,4 +237,10 @@ private:
     std::ofstream log_file_mag_;
     std::ofstream log_file_temp_;
     std::mutex log_mutex_;
+
+    // NNG publisher sockets for inter-process communication
+    std::unique_ptr<NngRawGyroSocket> nng_gyro_pub_;
+    std::unique_ptr<NngRawAccelSocket> nng_accel_pub_;
+    std::unique_ptr<NngRawMagSocket> nng_mag_pub_;
+    std::unique_ptr<NngRawTempSocket> nng_temp_pub_;
 };

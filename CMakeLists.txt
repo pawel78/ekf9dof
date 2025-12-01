@@ -18,11 +18,28 @@ endif()
 # Enable optimization flags for Release builds
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
+# ============================================================================
+# NNG support for inter-process communication (required)
+# ============================================================================
+include(FetchContent)
+
+# Fetch nanomsg-next-gen (nng)
+FetchContent_Declare(
+    nng
+    GIT_REPOSITORY https://github.com/nanomsg/nng.git
+    GIT_TAG        v1.8.0
+)
+set(NNG_TESTS OFF CACHE BOOL "" FORCE)
+set(NNG_TOOLS OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(nng)
+
+message(STATUS "NNG support enabled (nanomsg-next-gen v1.8.0)")
+
 # Common library source files (excluding main executables)
 set(LIB_SOURCES
     src/common/i2c_device.cpp
     src/common/custom_time_methods.cpp
-    src/common/Quat.cpp
+    src/common/quat.cpp
     src/imu/drivers/lsm9ds0_driver.cpp
     src/common/config_loader.cpp
     src/imu/processing/imu_preprocessor.cpp
@@ -39,6 +56,9 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC 
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
+# Link NNG library
+target_link_libraries(${PROJECT_NAME} PRIVATE nng)
 
 # ============================================================================
 # Offline Tools

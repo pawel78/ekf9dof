@@ -28,7 +28,7 @@ add_test(NAME ConfigLoaderTest COMMAND test_config_loader)
 # Test executable for SO3 quaternion library
 add_executable(test_so3
     test_so3.cpp
-    ${CMAKE_SOURCE_DIR}/src/common/Quat.cpp
+    ${CMAKE_SOURCE_DIR}/src/common/quat.cpp
 )
 target_include_directories(test_so3 PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_compile_features(test_so3 PRIVATE cxx_std_17)
@@ -36,3 +36,13 @@ target_compile_features(test_so3 PRIVATE cxx_std_17)
 # Add test
 add_test(NAME SO3Test COMMAND test_so3)
 
+# ============================================================================
+# NNG Socket test
+# ============================================================================
+add_executable(test_nng_socket test_nng_socket.cpp)
+target_include_directories(test_nng_socket PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+)
+target_link_libraries(test_nng_socket PRIVATE nng)
+target_compile_features(test_nng_socket PRIVATE cxx_std_17)
+add_test(NAME NngSocketTest COMMAND test_nng_socket)

@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <atomic>
 #include <thread>
+#include <memory>
+#include "imu/messages/nng_imu_sockets.hpp"
 
 
 class IMUPreprocessor
@@ -40,6 +42,12 @@ private:
     // Overall calibration loaded flag
     bool calibration_loaded_;
     bool stationary_gyro_cal_;
+
+    // NNG subscriber sockets for inter-process communication
+    std::unique_ptr<NngRawGyroSocket> nng_gyro_sub_;
+    std::unique_ptr<NngRawAccelSocket> nng_accel_sub_;
+    std::unique_ptr<NngRawMagSocket> nng_mag_sub_;
+    std::unique_ptr<NngRawTempSocket> nng_temp_sub_;
 
     // Calibration application methods
     void estimate_gyro_bias();

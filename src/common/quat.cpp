@@ -1,4 +1,4 @@
-#include "common/Quat.hpp"
+#include "common/quat.hpp"
 #include <cmath>
 
 // For M_PI portability across compilers
