@@ -6,7 +6,6 @@
 #include <fstream>
 #include <mutex>
 #include <string>
-#include "common/channel_types.hpp"
 #include "common/i2c_device.hpp"
 #include "imu/messages/nng_imu_channels.hpp"
 

@@ -26,7 +26,7 @@ TEST(test_basic_pubsub) {
 
     std::atomic<bool> publisher_ready{false};
     std::atomic<bool> subscriber_ready{false};
-    imu::messages::raw_accel_msg_t received_msg{};
+    messages::raw_accel_msg_t received_msg{};
 
     // Publisher thread - starts first and signals when ready
     std::thread pub_thread([&]() {
@@ -41,7 +41,7 @@ TEST(test_basic_pubsub) {
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
         // Send test message
-        imu::messages::raw_accel_msg_t msg{};
+        messages::raw_accel_msg_t msg{};
         msg.timestamp_ns = 123456789;
         msg.x = 1.5f;
         msg.y = -2.5f;
@@ -97,7 +97,7 @@ TEST(test_try_receive) {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-        imu::messages::raw_gyro_msg_t msg{};
+        messages::raw_gyro_msg_t msg{};
         msg.timestamp_ns = 987654321;
         msg.x = 0.1f;
         msg.y = 0.2f;
@@ -115,7 +115,7 @@ TEST(test_try_receive) {
         subscriber_ready.store(true);
 
         // try_receive should initially fail (no message yet)
-        imu::messages::raw_gyro_msg_t msg{};
+        messages::raw_gyro_msg_t msg{};
 
         // Wait for the message (with timeout)
         int attempts = 0;
@@ -150,7 +150,7 @@ TEST(test_close) {
     ASSERT_TRUE(pub.is_closed());
 
     // Send should fail after close
-    imu::messages::raw_mag_msg_t msg{};
+    messages::raw_mag_msg_t msg{};
     ASSERT_FALSE(pub.send(msg));
 
     std::cout << "test_close PASSED\n";
@@ -177,7 +177,7 @@ TEST(test_multiple_message_types) {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-        imu::messages::raw_temp_msg_t msg{};
+        messages::raw_temp_msg_t msg{};
         msg.timestamp_ns = 111222333;
         msg.temp_c = 25.5f;
         pub_ch.send(msg);
@@ -223,7 +223,7 @@ TEST(test_processed_messages) {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
-        imu::messages::proc_accel_msg_t msg{};
+        messages::proc_accel_msg_t msg{};
         msg.timestamp_ns = 444555666;
         msg.x = 0.01f;
         msg.y = 0.02f;
