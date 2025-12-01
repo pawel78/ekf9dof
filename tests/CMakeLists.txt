@@ -37,14 +37,12 @@ target_compile_features(test_so3 PRIVATE cxx_std_17)
 add_test(NAME SO3Test COMMAND test_so3)
 
 # ============================================================================
-# NNG Channel test (only when USE_NNG_CHANNEL is enabled)
+# NNG Channel test
 # ============================================================================
-if(USE_NNG_CHANNEL)
-    add_executable(test_nng_channel test_nng_channel.cpp)
-    target_include_directories(test_nng_channel PRIVATE
-        ${CMAKE_SOURCE_DIR}/include
-    )
-    target_link_libraries(test_nng_channel PRIVATE nng)
-    target_compile_features(test_nng_channel PRIVATE cxx_std_17)
-    add_test(NAME NngChannelTest COMMAND test_nng_channel)
-endif()
+add_executable(test_nng_channel test_nng_channel.cpp)
+target_include_directories(test_nng_channel PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+)
+target_link_libraries(test_nng_channel PRIVATE nng)
+target_compile_features(test_nng_channel PRIVATE cxx_std_17)
+add_test(NAME NngChannelTest COMMAND test_nng_channel)

@@ -19,25 +19,21 @@ endif()
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
 # ============================================================================
-# Optional NNG support for inter-process communication
+# NNG support for inter-process communication (required)
 # ============================================================================
-option(USE_NNG_CHANNEL "Enable NNG-based pub/sub channels" OFF)
+include(FetchContent)
 
-if(USE_NNG_CHANNEL)
-    include(FetchContent)
+# Fetch nanomsg-next-gen (nng)
+FetchContent_Declare(
+    nng
+    GIT_REPOSITORY https://github.com/nanomsg/nng.git
+    GIT_TAG        v1.8.0
+)
+set(NNG_TESTS OFF CACHE BOOL "" FORCE)
+set(NNG_TOOLS OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(nng)
 
-    # Fetch nanomsg-next-gen (nng)
-    FetchContent_Declare(
-        nng
-        GIT_REPOSITORY https://github.com/nanomsg/nng.git
-        GIT_TAG        v1.8.0
-    )
-    set(NNG_TESTS OFF CACHE BOOL "" FORCE)
-    set(NNG_TOOLS OFF CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(nng)
-
-    message(STATUS "NNG support enabled")
-endif()
+message(STATUS "NNG support enabled (nanomsg-next-gen v1.8.0)")
 
 # Common library source files (excluding main executables)
 set(LIB_SOURCES
@@ -61,11 +57,8 @@ target_include_directories(${PROJECT_NAME}
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# Link NNG library if enabled
-if(USE_NNG_CHANNEL)
-    target_link_libraries(${PROJECT_NAME} PRIVATE nng)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE USE_NNG_CHANNEL)
-endif()
+# Link NNG library
+target_link_libraries(${PROJECT_NAME} PRIVATE nng)
 
 # ============================================================================
 # Offline Tools
