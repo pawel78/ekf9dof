@@ -24,7 +24,7 @@ calibration:
   mag_matrix: [0.45822247f,  0.02396557f,  0.00811880f,
     0.02396557f,  0.65980460f,  0.03279531f,
     0.00811880f,  0.03279531f,  0.45884020f]
-  mag_declination_deg: -13.50f  # that's about 13.5 deg. West of True North for Los Gatos, CA
+  mag_declination_deg: [-13.50f]  # that's about 13.5 deg. West of True North for Los Gatos, CA
 
 ekf:
   Qa_bias: 1.0e-6
