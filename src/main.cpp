@@ -118,8 +118,11 @@ int main(int argc, char* argv[])
 
     try
     {
-        IMUPreprocessor imu_preprocessor;
+        // Create driver FIRST (binds NNG publisher sockets)
         LSM9DS0Driver imu_driver("/dev/i2c-7");
+        
+        // Then create preprocessor (connects to NNG publisher sockets)
+        IMUPreprocessor imu_preprocessor;
 
         // Start the IMU driver (spawns internal thread)
         imu_driver.start();
