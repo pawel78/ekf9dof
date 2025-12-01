@@ -39,7 +39,7 @@ message(STATUS "NNG support enabled (nanomsg-next-gen v1.8.0)")
 set(LIB_SOURCES
     src/common/i2c_device.cpp
     src/common/custom_time_methods.cpp
-    src/common/Quat.cpp
+    src/common/quat.cpp
     src/imu/drivers/lsm9ds0_driver.cpp
     src/common/config_loader.cpp
     src/imu/processing/imu_preprocessor.cpp

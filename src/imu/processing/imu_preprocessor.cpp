@@ -251,12 +251,12 @@ void IMUPreprocessor::start()
     }
 
     // Initialize NNG subscriber channels (do this in start() to ensure publishers are ready)
-    std::cout << "Initializing NNG subscriber channels...\n";
+    std::cout << "Initializing IMU Preprocessor NNG subscriber channels...\n";
     nng_gyro_sub_ = std::make_unique<imu::NngRawGyroChannel>(imu::nng_urls::RAW_GYRO, false);
     nng_accel_sub_ = std::make_unique<imu::NngRawAccelChannel>(imu::nng_urls::RAW_ACCEL, false);
     nng_mag_sub_ = std::make_unique<imu::NngRawMagChannel>(imu::nng_urls::RAW_MAG, false);
     nng_temp_sub_ = std::make_unique<imu::NngRawTempChannel>(imu::nng_urls::RAW_TEMP, false);
-    std::cout << "✓ NNG subscriber channels initialized\n";
+    std::cout << "✓ IMU Preprocessor NNG subscriber channels initialized\n";
 
     std::cout << "Starting IMU preprocessor thread...\n";
     running_.store(true);
