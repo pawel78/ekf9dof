@@ -464,13 +464,13 @@ LSM9DS0Driver::LSM9DS0Driver(const char *i2c_device_path)
     configure_imu();
     std::cout << "✓ IMU configured\n";
 
-    // Initialize NNG publisher channels
-    std::cout << "Initializing IMU driver NNG publisher channels...\n";
-    nng_gyro_pub_ = std::make_unique<imu::NngRawGyroChannel>(imu::nng_urls::RAW_GYRO, true);
-    nng_accel_pub_ = std::make_unique<imu::NngRawAccelChannel>(imu::nng_urls::RAW_ACCEL, true);
-    nng_mag_pub_ = std::make_unique<imu::NngRawMagChannel>(imu::nng_urls::RAW_MAG, true);
-    nng_temp_pub_ = std::make_unique<imu::NngRawTempChannel>(imu::nng_urls::RAW_TEMP, true);
-    std::cout << "✓ IMU driver NNG publisher channels initialized\n";
+    // Initialize NNG publisher sockets
+    std::cout << "Initializing NNG publisher sockets...\n";
+    nng_gyro_pub_ = std::make_unique<NngRawGyroSocket>(nng_urls::RAW_GYRO, true);
+    nng_accel_pub_ = std::make_unique<NngRawAccelSocket>(nng_urls::RAW_ACCEL, true);
+    nng_mag_pub_ = std::make_unique<NngRawMagSocket>(nng_urls::RAW_MAG, true);
+    nng_temp_pub_ = std::make_unique<NngRawTempSocket>(nng_urls::RAW_TEMP, true);
+    std::cout << "✓ NNG publisher sockets initialized\n";
 }
 
 LSM9DS0Driver::~LSM9DS0Driver()

@@ -11,10 +11,8 @@
 #include <nng/protocol/pubsub0/pub.h>
 #include <nng/protocol/pubsub0/sub.h>
 
-namespace channel {
-
 /**
- * @brief NNG-based pub/sub channel with raw struct serialization
+ * @brief NNG-based pub/sub socket with raw struct serialization
  *
  * This class provides inter-process communication using nanomsg-next-gen (nng)
  * pub/sub sockets with raw C++ struct serialization.
@@ -24,26 +22,26 @@ namespace channel {
  *
  * Usage:
  *   // Publisher side
- *   NngChannel<raw_accel_msg_t> pub_channel("ipc:///tmp/accel.ipc", true);
- *   pub_channel.send(accel_msg);
+ *   NngSocket<raw_accel_msg_t> pub_socket("ipc:///tmp/accel.ipc", true);
+ *   pub_socket.send(accel_msg);
  *
  *   // Subscriber side
- *   NngChannel<raw_accel_msg_t> sub_channel("ipc:///tmp/accel.ipc", false);
- *   auto msg = sub_channel.receive();
+ *   NngSocket<raw_accel_msg_t> sub_socket("ipc:///tmp/accel.ipc", false);
+ *   auto msg = sub_socket.receive();
  */
 template <typename T>
-class NngChannel {
+class NngSocket {
     static_assert(std::is_trivially_copyable_v<T>, "T must be trivially copyable for raw serialization");
     
 public:
     /**
-     * @brief Construct an NNG channel
+     * @brief Construct an NNG socket
      * @param url IPC URL (e.g., "ipc:///tmp/sensor.ipc")
      * @param is_publisher True for publisher, false for subscriber
      * @param dial_retry_ms Retry interval for subscriber dial attempts (default 50ms)
      * @param max_dial_retries Maximum number of dial retries for subscriber (default 100)
      */
-    NngChannel(const std::string& url, bool is_publisher,
+    NngSocket(const std::string& url, bool is_publisher,
                int dial_retry_ms = 50, int max_dial_retries = 100)
         : url_(url), is_publisher_(is_publisher), closed_(false) {
         int rv;
@@ -91,23 +89,23 @@ public:
         }
     }
 
-    ~NngChannel() {
+    ~NngSocket() {
         close();
     }
 
     // Non-copyable
-    NngChannel(const NngChannel&) = delete;
-    NngChannel& operator=(const NngChannel&) = delete;
+    NngSocket(const NngSocket&) = delete;
+    NngSocket& operator=(const NngSocket&) = delete;
 
     // Moveable
-    NngChannel(NngChannel&& other) noexcept
+    NngSocket(NngSocket&& other) noexcept
         : socket_(other.socket_), url_(std::move(other.url_)),
           is_publisher_(other.is_publisher_), closed_(other.closed_.load()) {
         other.socket_ = NNG_SOCKET_INITIALIZER;
         other.closed_ = true;
     }
 
-    NngChannel& operator=(NngChannel&& other) noexcept {
+    NngSocket& operator=(NngSocket&& other) noexcept {
         if (this != &other) {
             close();
             socket_ = other.socket_;
@@ -227,5 +225,3 @@ private:
     bool is_publisher_;
     std::atomic<bool> closed_;
 };
-
-} // namespace channel

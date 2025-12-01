@@ -4,7 +4,7 @@
 #include <atomic>
 #include <thread>
 #include <memory>
-#include "imu/messages/nng_imu_channels.hpp"
+#include "imu/messages/nng_imu_sockets.hpp"
 
 
 class IMUPreprocessor
@@ -43,11 +43,11 @@ private:
     bool calibration_loaded_;
     bool stationary_gyro_cal_;
 
-    // NNG subscriber channels for inter-process communication
-    std::unique_ptr<imu::NngRawGyroChannel> nng_gyro_sub_;
-    std::unique_ptr<imu::NngRawAccelChannel> nng_accel_sub_;
-    std::unique_ptr<imu::NngRawMagChannel> nng_mag_sub_;
-    std::unique_ptr<imu::NngRawTempChannel> nng_temp_sub_;
+    // NNG subscriber sockets for inter-process communication
+    std::unique_ptr<NngRawGyroSocket> nng_gyro_sub_;
+    std::unique_ptr<NngRawAccelSocket> nng_accel_sub_;
+    std::unique_ptr<NngRawMagSocket> nng_mag_sub_;
+    std::unique_ptr<NngRawTempSocket> nng_temp_sub_;
 
     // Calibration application methods
     void estimate_gyro_bias();

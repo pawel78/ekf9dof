@@ -250,13 +250,13 @@ void IMUPreprocessor::start()
         return;
     }
 
-    // Initialize NNG subscriber channels (do this in start() to ensure publishers are ready)
-    std::cout << "Initializing IMU Preprocessor NNG subscriber channels...\n";
-    nng_gyro_sub_ = std::make_unique<imu::NngRawGyroChannel>(imu::nng_urls::RAW_GYRO, false);
-    nng_accel_sub_ = std::make_unique<imu::NngRawAccelChannel>(imu::nng_urls::RAW_ACCEL, false);
-    nng_mag_sub_ = std::make_unique<imu::NngRawMagChannel>(imu::nng_urls::RAW_MAG, false);
-    nng_temp_sub_ = std::make_unique<imu::NngRawTempChannel>(imu::nng_urls::RAW_TEMP, false);
-    std::cout << "✓ IMU Preprocessor NNG subscriber channels initialized\n";
+    // Initialize NNG subscriber sockets (do this in start() to ensure publishers are ready)
+    std::cout << "Initializing NNG subscriber sockets...\n";
+    nng_gyro_sub_ = std::make_unique<NngRawGyroSocket>(nng_urls::RAW_GYRO, false);
+    nng_accel_sub_ = std::make_unique<NngRawAccelSocket>(nng_urls::RAW_ACCEL, false);
+    nng_mag_sub_ = std::make_unique<NngRawMagSocket>(nng_urls::RAW_MAG, false);
+    nng_temp_sub_ = std::make_unique<NngRawTempSocket>(nng_urls::RAW_TEMP, false);
+    std::cout << "✓ NNG subscriber sockets initialized\n";
 
     std::cout << "Starting IMU preprocessor thread...\n";
     running_.store(true);

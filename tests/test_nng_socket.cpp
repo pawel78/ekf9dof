@@ -5,7 +5,7 @@
 #include <cassert>
 #include <cmath>
 
-#include "imu/messages/nng_imu_channels.hpp"
+#include "imu/messages/nng_imu_sockets.hpp"
 
 // Simple test framework - using exit(1) on failure is acceptable for this minimal
 // test suite since cleanup is handled by process termination
@@ -30,7 +30,7 @@ TEST(test_basic_pubsub) {
 
     // Publisher thread - starts first and signals when ready
     std::thread pub_thread([&]() {
-        imu::NngRawAccelChannel pub(TEST_IPC_URL, true);
+        NngRawAccelSocket pub(TEST_IPC_URL, true);
         publisher_ready.store(true);
 
         // Wait for subscriber to connect
@@ -57,7 +57,7 @@ TEST(test_basic_pubsub) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        imu::NngRawAccelChannel sub(TEST_IPC_URL, false);
+        NngRawAccelSocket sub(TEST_IPC_URL, false);
         subscriber_ready.store(true);
 
         auto result = sub.receive();
@@ -89,7 +89,7 @@ TEST(test_try_receive) {
     std::atomic<bool> subscriber_ready{false};
 
     std::thread pub_thread([&]() {
-        imu::NngRawGyroChannel pub(url, true);
+        NngRawGyroSocket pub(url, true);
         publisher_ready.store(true);
 
         while (!subscriber_ready.load()) {
@@ -111,7 +111,7 @@ TEST(test_try_receive) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        imu::NngRawGyroChannel sub(url, false);
+        NngRawGyroSocket sub(url, false);
         subscriber_ready.store(true);
 
         // try_receive should initially fail (no message yet)
@@ -143,7 +143,7 @@ TEST(test_close) {
 
     constexpr const char* url = "ipc:///tmp/test_close.ipc";
 
-    imu::NngRawMagChannel pub(url, true);
+    NngRawMagSocket pub(url, true);
     ASSERT_FALSE(pub.is_closed());
 
     pub.close();
@@ -169,7 +169,7 @@ TEST(test_multiple_message_types) {
     std::atomic<bool> subscriber_ready{false};
 
     std::thread pub([&]() {
-        imu::NngRawTempChannel pub_ch(url, true);
+        NngRawTempSocket pub_ch(url, true);
         publisher_ready.store(true);
 
         while (!subscriber_ready.load()) {
@@ -188,7 +188,7 @@ TEST(test_multiple_message_types) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        imu::NngRawTempChannel sub_ch(url, false);
+        NngRawTempSocket sub_ch(url, false);
         subscriber_ready.store(true);
 
         auto result = sub_ch.receive();
@@ -215,7 +215,7 @@ TEST(test_processed_messages) {
     std::atomic<bool> subscriber_ready{false};
 
     std::thread pub([&]() {
-        imu::NngProcAccelChannel pub_ch(url, true);
+        NngProcAccelSocket pub_ch(url, true);
         publisher_ready.store(true);
 
         while (!subscriber_ready.load()) {
@@ -236,7 +236,7 @@ TEST(test_processed_messages) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
 
-        imu::NngProcAccelChannel sub_ch(url, false);
+        NngProcAccelSocket sub_ch(url, false);
         subscriber_ready.store(true);
 
         auto result = sub_ch.receive();

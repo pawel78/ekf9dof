@@ -1,6 +1,6 @@
 #pragma once
 
-#include "common/nng_channel.hpp"
+#include "common/nng_socket.hpp"
 #include "imu/messages/imu_data.hpp"
 
 // NNG Socket type aliases
