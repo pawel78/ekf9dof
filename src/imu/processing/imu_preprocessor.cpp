@@ -337,6 +337,19 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
             preprocessor->nng_accel_sub_->try_receive(accel_init) &&
             preprocessor->nng_mag_sub_->try_receive(mag_init))
         {
+            // Store initial values into member variables
+            preprocessor->yg_[0] = gyro_init.x;
+            preprocessor->yg_[1] = gyro_init.y;
+            preprocessor->yg_[2] = gyro_init.z;
+            
+            preprocessor->ya_[0] = accel_init.x;
+            preprocessor->ya_[1] = accel_init.y;
+            preprocessor->ya_[2] = accel_init.z;
+            
+            preprocessor->ym_[0] = mag_init.x;
+            preprocessor->ym_[1] = mag_init.y;
+            preprocessor->ym_[2] = mag_init.z;
+            
             std::cout << "✓ First sensor data received from driver\n";
             break;
         }
