@@ -216,6 +216,19 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
     nav_q_bdy_ = bdy_q_imu_ * imu_q_nav_;
     bdy_q_nav_ = nav_q_bdy_.conjugate();
 
+    // extract roll and pitch from acceleromter only and print resutls to screen
+    std::array<double, 3> rpy_accel_only;
+    {
+        // Compute roll and pitch from accelerometer
+        double roll = std::atan2(imu_g_avg_[1], imu_g_avg_[2]);
+        double pitch = std::atan2(-imu_g_avg_[0], std::sqrt(imu_g_avg_[1] * imu_g_avg_[1] + imu_g_avg_[2] * imu_g_avg_[2]));
+        rpy_accel_only[0] = roll;
+        rpy_accel_only[1] = pitch;
+        rpy_accel_only[2] = 0.0; // yaw unknown from accel only
+    }
+    std::cout << "Accel-only RPY (deg): Roll: " << rpy_accel_only[0] * 180.0 / M_PI
+              << ", Pitch: " << rpy_accel_only[1] * 180.0 / M_PI << "\n";
+
     // Extract Euler angles (roll, pitch, yaw) from quaternion
     bdy_rpy_nav_ = nav_q_bdy_.to_euler();
 }
