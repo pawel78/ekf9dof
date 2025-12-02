@@ -86,9 +86,11 @@ void Ahrs::ahrs_thread_func(Ahrs *ahrs)
     while (ahrs->running_.load())
     {
         // Try to read gyro from NNG socket
-        if (!ahrs->nng_proc_gyro_sub_->try_receive(gyro)) {
+        if (!ahrs->nng_proc_gyro_sub_->try_receive(gyro))
+        {
             no_data_count++;
-            if (no_data_count >= MAX_NO_DATA_BEFORE_WARN) {
+            if (no_data_count >= MAX_NO_DATA_BEFORE_WARN)
+            {
                 std::cout << "Warning: No gyro data received (waiting for preprocessor...)\n";
                 no_data_count = 0;
             }
@@ -96,31 +98,34 @@ void Ahrs::ahrs_thread_func(Ahrs *ahrs)
             continue;
         }
         no_data_count = 0; // Reset counter when data received
-        
+
         ahrs->imu_omega_imu_nav_[0] = gyro.x;
         ahrs->imu_omega_imu_nav_[1] = gyro.y;
         ahrs->imu_omega_imu_nav_[2] = gyro.z;
-        
+
         // Try to read accel from NNG socket
-        if (!ahrs->nng_proc_accel_sub_->try_receive(accel)) {
+        if (!ahrs->nng_proc_accel_sub_->try_receive(accel))
+        {
+            std::cout << "Warning: No accel data received (waiting for preprocessor...)\n";
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
-        
+
         ahrs->imu_accel_[0] = accel.x;
         ahrs->imu_accel_[1] = accel.y;
         ahrs->imu_accel_[2] = accel.z;
 
         // Try to read mag from NNG socket
-        if (!ahrs->nng_proc_mag_sub_->try_receive(mag)) {
+        if (!ahrs->nng_proc_mag_sub_->try_receive(mag))
+        {
+            std::cout << "Warning: No mag data received (waiting for preprocessor...)\n";
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
-        
         ahrs->imu_mag_[0] = mag.x;
         ahrs->imu_mag_[1] = mag.y;
         ahrs->imu_mag_[2] = mag.z;
-    
+
         // Perform stationary initial alignment if needed
         if (ahrs->is_stationary_ && !ahrs->stationary_alignment_done_)
         {
@@ -132,9 +137,9 @@ void Ahrs::ahrs_thread_func(Ahrs *ahrs)
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
-        
+
         // TODO: AHRS update logic here
-        
+
         // Sleep to control update rate (~100Hz)
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
@@ -147,8 +152,8 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
     // Implementation of state initialization goes here
     // build rotation matrix from accelerometer and magnetometer averages
     std::array<std::array<double, 3>, 3> imu_R_nav;
-    double g_norm = std::sqrt(g_avg[0]*g_avg[0] + g_avg[1]*g_avg[1] + g_avg[2]*g_avg[2]);
-    double m_norm = std::sqrt(m_avg[0]*m_avg[0] + m_avg[1]*m_avg[1] + m_avg[2]*m_avg[2]);
+    double g_norm = std::sqrt(g_avg[0] * g_avg[0] + g_avg[1] * g_avg[1] + g_avg[2] * g_avg[2]);
+    double m_norm = std::sqrt(m_avg[0] * m_avg[0] + m_avg[1] * m_avg[1] + m_avg[2] * m_avg[2]);
     for (size_t i = 0; i < 3; ++i)
     {
         imu_R_nav[i][0] = g_avg[i] / g_norm; // normalize gravity vector
@@ -156,11 +161,11 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
     }
     // cross product of gravity and mag (g_avg x m_avg) to get 2nd column
     std::array<double, 3> r;
-    r[0] = g_avg[1]*m_avg[2] - g_avg[2]*m_avg[1];
-    r[1] = g_avg[2]*m_avg[0] - g_avg[0]*m_avg[2];
-    r[2] = g_avg[0]*m_avg[1] - g_avg[1]*m_avg[0];
+    r[0] = g_avg[1] * m_avg[2] - g_avg[2] * m_avg[1];
+    r[1] = g_avg[2] * m_avg[0] - g_avg[0] * m_avg[2];
+    r[2] = g_avg[0] * m_avg[1] - g_avg[1] * m_avg[0];
 
-    double r_norm = std::sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
+    double r_norm = std::sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
     for (size_t i = 0; i < 3; ++i)
     {
         imu_R_nav[i][1] = r[i] / r_norm; // normalize
@@ -170,12 +175,12 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
     imu_q_nav_ = Quat::from_rotation_matrix(imu_R_nav);
     nav_q_bdy_ = bdy_q_imu_ * imu_q_nav_;
     bdy_q_nav_ = nav_q_bdy_.conjugate();
-    
+
     // Extract Euler angles (roll, pitch, yaw) from quaternion
     bdy_rpy_nav_ = nav_q_bdy_.to_euler();
-
 }
-std::array<double, 3> Ahrs::extract_rpy() const {
+std::array<double, 3> Ahrs::extract_rpy() const
+{
     return nav_q_bdy_.to_euler();
 }
 
@@ -194,7 +199,7 @@ bool Ahrs::stationary_initial_alignment()
     static size_t n = 0;
 
     if (n <= NUM_SAMPLES)
-    {   
+    {
         for (size_t i = 0; i < 3; ++i)
         {
             ya_sum[i] += imu_accel_[i];
@@ -203,22 +208,22 @@ bool Ahrs::stationary_initial_alignment()
         }
         ++n;
     }
-    else 
+    else
     {
         // Compute averages
         for (size_t i = 0; i < 3; ++i)
         {
-            imu_g_avg_[i] =  ya_sum[i] / NUM_SAMPLES;
-            imu_m_avg_[i] =  ym_sum[i] / NUM_SAMPLES;
-            imu_yg_b_[i]  =  yg_sum[i] / NUM_SAMPLES;
+            imu_g_avg_[i] = ya_sum[i] / NUM_SAMPLES;
+            imu_m_avg_[i] = ym_sum[i] / NUM_SAMPLES;
+            imu_yg_b_[i] = yg_sum[i] / NUM_SAMPLES;
         }
 
         // Use averaged sensor data to compute initial orientation
         state_init(imu_m_avg_, imu_g_avg_);
         std::array<double, 3> rpy = extract_rpy();
-        std::cout << "Initial alignment RPY (deg): Roll: " << rpy[0] * 180.0/M_PI
-                  << ", Pitch: " << rpy[1] * 180.0/M_PI
-                  << ", Yaw: " << rpy[2] * 180.0/M_PI << "\n";   
+        std::cout << "Initial alignment RPY (deg): Roll: " << rpy[0] * 180.0 / M_PI
+                  << ", Pitch: " << rpy[1] * 180.0 / M_PI
+                  << ", Yaw: " << rpy[2] * 180.0 / M_PI << "\n";
         std::cout << "✓ Stationary initial alignment complete\n";
         return true;
     }
