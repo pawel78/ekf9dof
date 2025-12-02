@@ -80,51 +80,78 @@ void Ahrs::ahrs_thread_func(Ahrs *ahrs)
     messages::proc_accel_msg_t accel{0, 0, 0, 0};
     messages::proc_mag_msg_t mag{0, 0, 0, 0};
 
-    int no_data_count = 0;
-    const int MAX_NO_DATA_BEFORE_WARN = 100; // Warn every 100 iterations
+    int no_gyro_count = 0;
+    int no_accel_count = 0;
+    int no_mag_count = 0;
+    const int MAX_NO_DATA_BEFORE_WARN = 10; // Warn every 100 iterations (~1 second)
 
     while (ahrs->running_.load())
     {
+        bool have_data = false;
+        
         // Try to read gyro from NNG socket
-        if (!ahrs->nng_proc_gyro_sub_->try_receive(gyro))
+        if (ahrs->nng_proc_gyro_sub_->try_receive(gyro))
         {
-            no_data_count++;
-            if (no_data_count >= MAX_NO_DATA_BEFORE_WARN)
+            ahrs->imu_omega_imu_nav_[0] = gyro.x;
+            ahrs->imu_omega_imu_nav_[1] = gyro.y;
+            ahrs->imu_omega_imu_nav_[2] = gyro.z;
+            no_gyro_count = 0;
+            have_data = true;
+        }
+        else
+        {
+            no_gyro_count++;
+            if (no_gyro_count >= MAX_NO_DATA_BEFORE_WARN)
             {
                 std::cout << "Warning: No gyro data received (waiting for preprocessor...)\n";
-                no_data_count = 0;
+                no_gyro_count = 0;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            continue;
         }
-        no_data_count = 0; // Reset counter when data received
 
-        ahrs->imu_omega_imu_nav_[0] = gyro.x;
-        ahrs->imu_omega_imu_nav_[1] = gyro.y;
-        ahrs->imu_omega_imu_nav_[2] = gyro.z;
-
-        // Try to read accel from NNG socket
-        if (!ahrs->nng_proc_accel_sub_->try_receive(accel))
+        // Try to read accel from NNG socket (don't block if not available)
+        if (ahrs->nng_proc_accel_sub_->try_receive(accel))
         {
-            std::cout << "Warning: No accel data received (waiting for preprocessor...)\n";
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            continue;
+            ahrs->imu_accel_[0] = accel.x;
+            ahrs->imu_accel_[1] = accel.y;
+            ahrs->imu_accel_[2] = accel.z;
+            no_accel_count = 0;
+            have_data = true;
         }
-
-        ahrs->imu_accel_[0] = accel.x;
-        ahrs->imu_accel_[1] = accel.y;
-        ahrs->imu_accel_[2] = accel.z;
-
-        // Try to read mag from NNG socket
-        if (!ahrs->nng_proc_mag_sub_->try_receive(mag))
+        else
         {
-            std::cout << "Warning: No mag data received (waiting for preprocessor...)\n";
+            no_accel_count++;
+            if (no_accel_count >= MAX_NO_DATA_BEFORE_WARN)
+            {
+                std::cout << "Warning: No accel data received (waiting for preprocessor...)\n";
+                no_accel_count = 0;
+            }
+        }
+
+        // Try to read mag from NNG socket (don't block if not available)
+        if (ahrs->nng_proc_mag_sub_->try_receive(mag))
+        {
+            ahrs->imu_mag_[0] = mag.x;
+            ahrs->imu_mag_[1] = mag.y;
+            ahrs->imu_mag_[2] = mag.z;
+            no_mag_count = 0;
+            have_data = true;
+        }
+        else
+        {
+            no_mag_count++;
+            if (no_mag_count >= MAX_NO_DATA_BEFORE_WARN)
+            {
+                std::cout << "Warning: No mag data received (waiting for preprocessor...)\n";
+                no_mag_count = 0;
+            }
+        }
+        
+        // If no data at all this iteration, sleep and continue
+        if (!have_data)
+        {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
-        ahrs->imu_mag_[0] = mag.x;
-        ahrs->imu_mag_[1] = mag.y;
-        ahrs->imu_mag_[2] = mag.z;
 
         // Perform stationary initial alignment if needed
         if (ahrs->is_stationary_ && !ahrs->stationary_alignment_done_)
