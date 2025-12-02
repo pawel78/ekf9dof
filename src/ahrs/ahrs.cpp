@@ -8,13 +8,9 @@
 #include <iostream>
 
 Ahrs::Ahrs()
-    : running_(false),
-      nng_proc_gyro_sub_(std::make_unique<NngProcGyroSocket>(nng_urls::PROC_GYRO, false)),
-      nng_proc_accel_sub_(std::make_unique<NngProcAccelSocket>(nng_urls::PROC_ACCEL, false)),
-      nng_proc_mag_sub_(std::make_unique<NngProcMagSocket>(nng_urls::PROC_MAG, false)),
-      nng_proc_temp_sub_(std::make_unique<NngProcTempSocket>(nng_urls::PROC_TEMP, false))
+    : running_(false)
 {
-    // Initialization code if needed
+    // Constructor implementation (if any)
 }
 Ahrs::~Ahrs()
 {
