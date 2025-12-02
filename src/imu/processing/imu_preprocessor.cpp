@@ -324,6 +324,24 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
     {
         std::cout << "Gyro bias estimation enabled. Ensure the IMU is stationary.\n";
     }
+    
+    // Wait for first valid data from driver before publishing
+    std::cout << "Waiting for first sensor data from driver...\n";
+    messages::raw_gyro_msg_t gyro_init{0, 0, 0, 0};
+    messages::raw_accel_msg_t accel_init{0, 0, 0, 0};
+    messages::raw_mag_msg_t mag_init{0, 0, 0, 0};
+    
+    while (preprocessor->running_.load())
+    {
+        if (preprocessor->nng_gyro_sub_->try_receive(gyro_init) &&
+            preprocessor->nng_accel_sub_->try_receive(accel_init) &&
+            preprocessor->nng_mag_sub_->try_receive(mag_init))
+        {
+            std::cout << "✓ First sensor data received from driver\n";
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
 
     while (preprocessor->running_.load())
     {
