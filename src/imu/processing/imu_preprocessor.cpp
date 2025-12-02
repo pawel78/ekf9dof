@@ -312,6 +312,12 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
 {
     float gx, gy, gz, ax, ay, az, mx, my, mz;
     uint64_t timestamp = 0;
+    bool gyro_first_sample = true;
+    bool accel_first_sample = true;
+    bool mag_first_sample = true;
+    size_t gyro_sent = 0;
+    size_t accel_sent = 0;
+    size_t mag_sent = 0;
     std::cout << "IMU Preprocessor thread running.\n";
 
     if (preprocessor->stationary_gyro_cal_)
@@ -325,12 +331,6 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
         preprocessor->get_gyro_measurement(gx, gy, gz);
         preprocessor->get_accel_measurement(ax, ay, az);
         preprocessor->get_mag_measurement(mx, my, mz);
-        bool gyro_first_sample = true;
-        bool accel_first_sample = true;
-        bool mag_first_sample = true;
-        size_t gyro_sent = 0;
-        size_t accel_sent = 0;
-        size_t mag_sent = 0;
 
         if (preprocessor->stationary_gyro_cal_)
         {
