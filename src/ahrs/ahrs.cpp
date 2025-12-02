@@ -154,6 +154,13 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
     std::array<std::array<double, 3>, 3> imu_R_nav;
     double g_norm = std::sqrt(g_avg[0] * g_avg[0] + g_avg[1] * g_avg[1] + g_avg[2] * g_avg[2]);
     double m_norm = std::sqrt(m_avg[0] * m_avg[0] + m_avg[1] * m_avg[1] + m_avg[2] * m_avg[2]);
+    
+    // Check for zero vectors
+    if (g_norm < 1e-6 || m_norm < 1e-6) {
+        std::cerr << "ERROR: Zero vector in state_init! g_norm=" << g_norm << " m_norm=" << m_norm << "\n";
+        return;
+    }
+    
     for (size_t i = 0; i < 3; ++i)
     {
         imu_R_nav[i][0] = g_avg[i] / g_norm; // normalize gravity vector
@@ -166,6 +173,12 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
     r[2] = g_avg[0] * m_avg[1] - g_avg[1] * m_avg[0];
 
     double r_norm = std::sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
+    
+    if (r_norm < 1e-6) {
+        std::cerr << "ERROR: Cross product is zero in state_init!\n";
+        return;
+    }
+    
     for (size_t i = 0; i < 3; ++i)
     {
         imu_R_nav[i][1] = r[i] / r_norm; // normalize
