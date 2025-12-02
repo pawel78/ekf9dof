@@ -186,19 +186,21 @@ std::array<double, 3> Ahrs::extract_rpy() const
 
 bool Ahrs::stationary_initial_alignment()
 {
-    // Estimate avergage accelerometer and magnetometer readings
+    // Estimate average accelerometer and magnetometer readings
     if (stationary_alignment_done_)
     {
         std::cout << "Stationary initial alignment already done.\n";
         return true; // Already done
     }
-    std::array<double, 3> ya_sum = {0.0, 0.0, 0.0};
-    std::array<double, 3> ym_sum = {0.0, 0.0, 0.0};
-    std::array<double, 3> yg_sum = {0.0, 0.0, 0.0};
-    const size_t NUM_SAMPLES = 100;
+    
+    // Make these static so they persist across function calls
+    static std::array<double, 3> ya_sum = {0.0, 0.0, 0.0};
+    static std::array<double, 3> ym_sum = {0.0, 0.0, 0.0};
+    static std::array<double, 3> yg_sum = {0.0, 0.0, 0.0};
     static size_t n = 0;
+    const size_t NUM_SAMPLES = 100;
 
-    if (n <= NUM_SAMPLES)
+    if (n < NUM_SAMPLES)
     {
         for (size_t i = 0; i < 3; ++i)
         {
@@ -207,6 +209,10 @@ bool Ahrs::stationary_initial_alignment()
             yg_sum[i] += imu_omega_imu_nav_[i];
         }
         ++n;
+        
+        if (n % 20 == 0) {
+            std::cout << "Collecting alignment samples: " << n << "/" << NUM_SAMPLES << "\n";
+        }
     }
     else
     {
@@ -217,6 +223,9 @@ bool Ahrs::stationary_initial_alignment()
             imu_m_avg_[i] = ym_sum[i] / NUM_SAMPLES;
             imu_yg_b_[i] = yg_sum[i] / NUM_SAMPLES;
         }
+        
+        std::cout << "Accel avg: [" << imu_g_avg_[0] << ", " << imu_g_avg_[1] << ", " << imu_g_avg_[2] << "]\n";
+        std::cout << "Mag avg: [" << imu_m_avg_[0] << ", " << imu_m_avg_[1] << ", " << imu_m_avg_[2] << "]\n";
 
         // Use averaged sensor data to compute initial orientation
         state_init(imu_m_avg_, imu_g_avg_);
