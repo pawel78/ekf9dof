@@ -120,7 +120,7 @@ IMUPreprocessor::IMUPreprocessor()
     gyro_calibration_loaded_ = false;
     calibration_loaded_ = false;
 
-    stationary_gyro_cal_ = true;
+    stationary_gyro_cal_ = false;
     sum_gx_ = 0.0;
     sum_gy_ = 0.0;
     sum_gz_ = 0.0;
