@@ -81,15 +81,10 @@ void IMUPreprocessor::apply_accel_calibration(float ax_raw, float ay_raw, float 
 void IMUPreprocessor::apply_gyro_calibration(float gx_raw, float gy_raw, float gz_raw,
                                              float &gx_cal, float &gy_cal, float &gz_cal)
 {
-    // Apply hard iron correction (subtract bias)
-    float gx_bias_corrected = gx_raw - gyro_bias_[0];
-    float gy_bias_corrected = gy_raw - gyro_bias_[1];
-    float gz_bias_corrected = gz_raw - gyro_bias_[2];
-
     // Apply soft iron correction (matrix multiplication)
-    gx_cal = gyro_matrix_[0] * gx_bias_corrected + gyro_matrix_[1] * gy_bias_corrected + gyro_matrix_[2] * gz_bias_corrected;
-    gy_cal = gyro_matrix_[3] * gx_bias_corrected + gyro_matrix_[4] * gy_bias_corrected + gyro_matrix_[5] * gz_bias_corrected;
-    gz_cal = gyro_matrix_[6] * gx_bias_corrected + gyro_matrix_[7] * gy_bias_corrected + gyro_matrix_[8] * gz_bias_corrected;
+    gx_cal = gyro_matrix_[0] * gx_raw + gyro_matrix_[1] * gy_raw + gyro_matrix_[2] * gz_raw;
+    gy_cal = gyro_matrix_[3] * gx_raw + gyro_matrix_[4] * gy_raw + gyro_matrix_[5] * gz_raw;
+    gz_cal = gyro_matrix_[6] * gx_raw + gyro_matrix_[7] * gy_raw + gyro_matrix_[8] * gz_raw;
 }
 
 IMUPreprocessor::IMUPreprocessor()
@@ -212,19 +207,8 @@ void IMUPreprocessor::get_gyro_measurement(float &gx, float &gy, float &gz)
     messages::raw_gyro_msg_t gyro{0, 0, 0, 0};
     bool have_data = nng_gyro_sub_->try_receive(gyro);
 
-    // During bias estimation, use raw values; after, apply calibration
-    if (stationary_gyro_cal_)
-    {
-        // Store raw values for bias estimation
-        yg_[0] = gyro.x;
-        yg_[1] = gyro.y;
-        yg_[2] = gyro.z;
-    }
-    else
-    {
-        // Apply calibration after bias is estimated
-        apply_gyro_calibration(gyro.x, gyro.y, gyro.z, yg_[0], yg_[1], yg_[2]);
-    }
+    // Apply calibration after bias is estimated
+    apply_gyro_calibration(gyro.x, gyro.y, gyro.z, yg_[0], yg_[1], yg_[2]);
 
     gx = yg_[0];
     gy = yg_[1];
@@ -363,11 +347,6 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
         preprocessor->get_accel_measurement(ax, ay, az);
         preprocessor->get_mag_measurement(mx, my, mz);
 
-        if (preprocessor->stationary_gyro_cal_)
-        {
-            preprocessor->estimate_gyro_bias();
-        }
-
         // publish calibrated measurements via NNG (not implemented here)
         messages::proc_gyro_msg_t gyro_msg{timestamp, gx, gy, gz};
         if (!preprocessor->nng_proc_gyro_pub_->send(gyro_msg))
@@ -379,7 +358,7 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
         gyro_sent++;
         if (gyro_first_sample)
         {
-            std::cout << "Preprocessor: First gyro sent: " << gx << ", " << gy << ", " << gz << "\n"
+            std::cout << "Preprocessor: First gyro sent: " << gyro_msg.x << ", " << gyro_msg.y << ", " << gyro_msg.z << "\n"
                       << std::flush;
             gyro_first_sample = false;
         }
@@ -394,7 +373,7 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
         accel_sent++;
         if (accel_first_sample)
         {
-            std::cout << "Preprocessor: First accel sent: " << ax << ", " << ay << ", " << az << "\n"
+            std::cout << "Preprocessor: First accel sent: " << accel_msg.x << ", " << accel_msg.y << ", " << accel_msg.z << "\n"
                       << std::flush;
             accel_first_sample = false;
         }
@@ -409,7 +388,7 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
         mag_sent++;
         if (mag_first_sample)
         {
-            std::cout << "Preprocessor: First mag sent: " << mx << ", " << my << ", " << mz << "\n"
+            std::cout << "Preprocessor: First mag sent: " << mag_msg.x << ", " << mag_msg.y << ", " << mag_msg.z << "\n"
                       << std::flush;
             mag_first_sample = false;
         }
