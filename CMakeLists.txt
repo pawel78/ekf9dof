@@ -43,6 +43,7 @@ set(LIB_SOURCES
     src/imu/drivers/lsm9ds0_driver.cpp
     src/common/config_loader.cpp
     src/imu/processing/imu_preprocessor.cpp
+    src/ahrs/ahrs.cpp
 )
 
 # Create the main executable

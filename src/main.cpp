@@ -7,6 +7,7 @@
 #include "imu/messages/imu_data.hpp" // Messages + channel types in imu namespace
 #include "imu/processing/imu_preprocessor.hpp"
 #include "common/custom_time_methods.hpp"
+#include "ahrs/ahrs.hpp"
 
 // Note: Driver include only in main() for instantiation
 #include "imu/drivers/lsm9ds0_driver.hpp"
@@ -56,6 +57,9 @@ int main(int argc, char* argv[])
         // Then create preprocessor (connects to NNG publisher sockets)
         IMUPreprocessor imu_preprocessor;
 
+        // create ahrs
+        Ahrs ahrs;
+
         // Start the IMU driver (spawns internal thread)
         imu_driver.start();
         
@@ -76,6 +80,9 @@ int main(int argc, char* argv[])
        
         // Start the IMU preprocessor (spawns internal thread)
         imu_preprocessor.start();
+
+        // Start the AHRS (spawns internal thread)
+        ahrs.start();
 
         // Wait for shutdown signal
         while (g_running.load())
