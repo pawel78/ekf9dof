@@ -50,6 +50,12 @@ private:
     std::unique_ptr<NngRawMagSocket> nng_mag_sub_;
     std::unique_ptr<NngRawTempSocket> nng_temp_sub_;
 
+    // NNG publisher sockets for inter-process communication
+    std::unique_ptr<NngProcGyroSocket> nng_proc_gyro_pub_;
+    std::unique_ptr<NngProcAccelSocket> nng_proc_accel_pub_;
+    std::unique_ptr<NngProcMagSocket> nng_proc_mag_pub_;
+    std::unique_ptr<NngProcTempSocket> nng_proc_temp_pub_;
+
     // Calibration application methods
     void estimate_gyro_bias();
     void apply_mag_calibration(float mx_raw, float my_raw, float mz_raw, float &mx_cal, float &my_cal, float &mz_cal);
