@@ -80,58 +80,63 @@ void Ahrs::ahrs_thread_func(Ahrs *ahrs)
     messages::proc_accel_msg_t accel{0, 0, 0, 0};
     messages::proc_mag_msg_t mag{0, 0, 0, 0};
 
+    int no_data_count = 0;
+    const int MAX_NO_DATA_BEFORE_WARN = 100; // Warn every 100 iterations
+
     while (ahrs->running_.load())
     {
-        // AHRS processing logic goes here
-        // For example, read from NNG sockets, compute orientation, etc.
-            // Try to read gyro from NNG channel
-        
-        if (ahrs->nng_proc_gyro_sub_->try_receive(gyro)) {
-            // Successfully received gyro data
-            ahrs->imu_omega_imu_nav_[0] = gyro.x;
-            ahrs->imu_omega_imu_nav_[1] = gyro.y;
-            ahrs->imu_omega_imu_nav_[2] = gyro.z;
-        } else {
-            // No new gyro data available
-            // Handle accordingly (e.g., skip processing or use last known value)
-            std::cout << "No new gyro data available.\n";
-            continue; // Skip this iteration
-        }   
-        
-        if (ahrs->nng_proc_accel_sub_->try_receive(accel)) {
-            // Successfully received accel data
-            ahrs->imu_accel_[0] = accel.x;
-            ahrs->imu_accel_[1] = accel.y;
-            ahrs->imu_accel_[2] = accel.z;
-        } else {
-            // No new accel data available
-            std::cout << "No new accel data available.\n";
-            continue; // Skip this iteration
+        // Try to read gyro from NNG socket
+        if (!ahrs->nng_proc_gyro_sub_->try_receive(gyro)) {
+            no_data_count++;
+            if (no_data_count >= MAX_NO_DATA_BEFORE_WARN) {
+                std::cout << "Warning: No gyro data received (waiting for preprocessor...)\n";
+                no_data_count = 0;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
         }
+        no_data_count = 0; // Reset counter when data received
+        
+        ahrs->imu_omega_imu_nav_[0] = gyro.x;
+        ahrs->imu_omega_imu_nav_[1] = gyro.y;
+        ahrs->imu_omega_imu_nav_[2] = gyro.z;
+        
+        // Try to read accel from NNG socket
+        if (!ahrs->nng_proc_accel_sub_->try_receive(accel)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
+        }
+        
+        ahrs->imu_accel_[0] = accel.x;
+        ahrs->imu_accel_[1] = accel.y;
+        ahrs->imu_accel_[2] = accel.z;
 
-        if (ahrs->nng_proc_mag_sub_->try_receive(mag)) {
-            // Successfully received mag data
-            ahrs->imu_mag_[0] = mag.x;
-            ahrs->imu_mag_[1] = mag.y;
-            ahrs->imu_mag_[2] = mag.z;
-        } else {
-            // No new mag data available
-            std::cout << "No new mag data available.\n";
-            continue; // Skip this iteration
+        // Try to read mag from NNG socket
+        if (!ahrs->nng_proc_mag_sub_->try_receive(mag)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
         }
+        
+        ahrs->imu_mag_[0] = mag.x;
+        ahrs->imu_mag_[1] = mag.y;
+        ahrs->imu_mag_[2] = mag.z;
     
         // Perform stationary initial alignment if needed
         if (ahrs->is_stationary_ && !ahrs->stationary_alignment_done_)
         {
             ahrs->stationary_alignment_done_ = ahrs->stationary_initial_alignment();
         }
-        else    
+        else if (!ahrs->stationary_alignment_done_)
         {
-            continue; // Skip this iteration, wait until stationary alignment is done
+            // Skip processing until stationary alignment is done
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            continue;
         }
         
-        // Simulate some processing delay
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        // TODO: AHRS update logic here
+        
+        // Sleep to control update rate (~100Hz)
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 
     std::cout << "AHRS thread exiting.\n";
