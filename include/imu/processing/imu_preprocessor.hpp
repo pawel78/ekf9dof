@@ -85,13 +85,16 @@ public:
     void get_gyro_calibration(std::array<float, 3> &bias, std::array<float, 9> &matrix);
     
     // Get gyroscope measurement with calibration applied
-    void get_gyro_measurement(float &gx, float &gy, float &gz);
+    // Returns true if fresh data was received
+    bool get_gyro_measurement(float &gx, float &gy, float &gz);
 
     // Get accelerometer measurement with calibration applied
-    void get_accel_measurement(float &ax, float &ay, float &az);
+    // Returns true if fresh data was received
+    bool get_accel_measurement(float &ax, float &ay, float &az);
 
     // Get magnetometer measurement with calibration applied
-    void get_mag_measurement(float &mx, float &my, float &mz);
+    // Returns true if fresh data was received
+    bool get_mag_measurement(float &mx, float &my, float &mz);
 
     // Load calibration parameters from config
     void load_mag_calibration(const std::array<float, 3>& bias, const std::array<float, 9>& matrix);

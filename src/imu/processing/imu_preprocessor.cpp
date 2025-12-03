@@ -201,41 +201,60 @@ void IMUPreprocessor::get_gyro_calibration(std::array<float, 3> &bias, std::arra
     bias = gyro_bias_;
     matrix = gyro_matrix_;
 }
-void IMUPreprocessor::get_gyro_measurement(float &gx, float &gy, float &gz)
+bool IMUPreprocessor::get_gyro_measurement(float &gx, float &gy, float &gz)
 {
     // Try to read gyro from NNG channel
     messages::raw_gyro_msg_t gyro{0, 0, 0, 0};
     bool have_data = nng_gyro_sub_->try_receive(gyro);
 
-    // Apply calibration after bias is estimated
-    apply_gyro_calibration(gyro.x, gyro.y, gyro.z, yg_[0], yg_[1], yg_[2]);
+    // Only apply calibration if we received new data
+    if (have_data)
+    {
+        apply_gyro_calibration(gyro.x, gyro.y, gyro.z, yg_[0], yg_[1], yg_[2]);
+    }
 
     gx = yg_[0];
     gy = yg_[1];
     gz = yg_[2];
+    
+    return have_data;
 }
-void IMUPreprocessor::get_accel_measurement(float &ax, float &ay, float &az)
+bool IMUPreprocessor::get_accel_measurement(float &ax, float &ay, float &az)
 {
     // Try to read accel from NNG channel
     messages::raw_accel_msg_t accel{0, 0, 0, 0};
     bool have_data = nng_accel_sub_->try_receive(accel);
 
-    apply_accel_calibration(accel.x, accel.y, accel.z, ya_[0], ya_[1], ya_[2]);
+    // Only apply calibration if we received new data
+    if (have_data)
+    {
+        apply_accel_calibration(accel.x, accel.y, accel.z, ya_[0], ya_[1], ya_[2]);
+    }
+
     ax = ya_[0];
     ay = ya_[1];
     az = ya_[2];
+    
+    return have_data;
 }
 
-void IMUPreprocessor::get_mag_measurement(float &mx, float &my, float &mz)
+bool IMUPreprocessor::get_mag_measurement(float &mx, float &my, float &mz)
 {
     // Try to read mag from NNG channel
     messages::raw_mag_msg_t mag{0, 0, 0, 0};
     bool have_data = nng_mag_sub_->try_receive(mag);
 
-    apply_mag_calibration(mag.x, mag.y, mag.z, ym_[0], ym_[1], ym_[2]);
+    // Only apply calibration if we received new data
+    if (have_data)
+    {
+        apply_mag_calibration(mag.x, mag.y, mag.z, ym_[0], ym_[1], ym_[2]);
+    }
+
     mx = ym_[0];
     my = ym_[1];
     mz = ym_[2];
+    
+    return have_data;
 }
 
 void IMUPreprocessor::start()
@@ -343,54 +362,65 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
     while (preprocessor->running_.load())
     {
         // get gyro, accel, mag measurements with calibration applied
-        preprocessor->get_gyro_measurement(gx, gy, gz);
-        preprocessor->get_accel_measurement(ax, ay, az);
-        preprocessor->get_mag_measurement(mx, my, mz);
+        bool have_gyro = preprocessor->get_gyro_measurement(gx, gy, gz);
+        bool have_accel = preprocessor->get_accel_measurement(ax, ay, az);
+        bool have_mag = preprocessor->get_mag_measurement(mx, my, mz);
 
-        // publish calibrated measurements via NNG (not implemented here)
-        messages::proc_gyro_msg_t gyro_msg{timestamp, gx, gy, gz};
-        if (!preprocessor->nng_proc_gyro_pub_->send(gyro_msg))
+        // Only publish fresh gyro data
+        if (have_gyro)
         {
-            std::cerr << "ERROR: Gyro channel closed\n"
-                      << std::flush;
-            break;
-        }
-        gyro_sent++;
-        if (gyro_first_sample)
-        {
-            std::cout << "Preprocessor: First gyro sent: " << gyro_msg.x << ", " << gyro_msg.y << ", " << gyro_msg.z << "\n"
-                      << std::flush;
-            gyro_first_sample = false;
-        }
-
-        messages::proc_accel_msg_t accel_msg{timestamp, ax, ay, az};
-        if (!preprocessor->nng_proc_accel_pub_->send(accel_msg))
-        {
-            std::cerr << "ERROR: Accel channel closed\n"
-                      << std::flush;
-            break;
-        }
-        accel_sent++;
-        if (accel_first_sample)
-        {
-            std::cout << "Preprocessor: First accel sent: " << accel_msg.x << ", " << accel_msg.y << ", " << accel_msg.z << "\n"
-                      << std::flush;
-            accel_first_sample = false;
+            messages::proc_gyro_msg_t gyro_msg{timestamp, gx, gy, gz};
+            if (!preprocessor->nng_proc_gyro_pub_->send(gyro_msg))
+            {
+                std::cerr << "ERROR: Gyro channel closed\n"
+                          << std::flush;
+                break;
+            }
+            gyro_sent++;
+            if (gyro_first_sample)
+            {
+                std::cout << "Preprocessor: First gyro sent: " << gyro_msg.x << ", " << gyro_msg.y << ", " << gyro_msg.z << "\n"
+                          << std::flush;
+                gyro_first_sample = false;
+            }
         }
 
-        messages::proc_mag_msg_t mag_msg{timestamp, mx, my, mz};
-        if (!preprocessor->nng_proc_mag_pub_->send(mag_msg))
+        // Only publish fresh accel data
+        if (have_accel)
         {
-            std::cerr << "ERROR: Mag channel closed\n"
-                      << std::flush;
-            break;
+            messages::proc_accel_msg_t accel_msg{timestamp, ax, ay, az};
+            if (!preprocessor->nng_proc_accel_pub_->send(accel_msg))
+            {
+                std::cerr << "ERROR: Accel channel closed\n"
+                          << std::flush;
+                break;
+            }
+            accel_sent++;
+            if (accel_first_sample)
+            {
+                std::cout << "Preprocessor: First accel sent: " << accel_msg.x << ", " << accel_msg.y << ", " << accel_msg.z << "\n"
+                          << std::flush;
+                accel_first_sample = false;
+            }
         }
-        mag_sent++;
-        if (mag_first_sample)
+
+        // Only publish fresh mag data
+        if (have_mag)
         {
-            std::cout << "Preprocessor: First mag sent: " << mag_msg.x << ", " << mag_msg.y << ", " << mag_msg.z << "\n"
-                      << std::flush;
-            mag_first_sample = false;
+            messages::proc_mag_msg_t mag_msg{timestamp, mx, my, mz};
+            if (!preprocessor->nng_proc_mag_pub_->send(mag_msg))
+            {
+                std::cerr << "ERROR: Mag channel closed\n"
+                          << std::flush;
+                break;
+            }
+            mag_sent++;
+            if (mag_first_sample)
+            {
+                std::cout << "Preprocessor: First mag sent: " << mag_msg.x << ", " << mag_msg.y << ", " << mag_msg.z << "\n"
+                          << std::flush;
+                mag_first_sample = false;
+            }
         }
 
         // Sleep 10ms for ~100Hz sampling during bias estimation, slower after
