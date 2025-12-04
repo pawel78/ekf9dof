@@ -489,8 +489,8 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
             }
         }
 
-        // Sleep 10ms for ~100Hz sampling during bias estimation, slower after
-        int sleep_ms = preprocessor->stationary_gyro_cal_ ? 10 : 100;
+        // Sleep 20ms for ~50Hz sampling during bias estimation, slower after
+        int sleep_ms = 20;
         std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
     }
 }
