@@ -178,7 +178,11 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
     // Initialize AHRS state from averaged sensor data during stationary alignment
     // Build rotation matrix to express body frame in navigation (NED) frame
     
-    double g_norm = std::sqrt(g_avg[0] * g_avg[0] + g_avg[1] * g_avg[1] + g_avg[2] * g_avg[2]);
+    // NOTE: Accelerometer measures specific force (reaction to gravity), which points UP at rest
+    // We need gravity vector pointing DOWN for NED frame, so negate the accelerometer reading
+    std::array<double, 3> gravity = {-g_avg[0], -g_avg[1], -g_avg[2]};
+    
+    double g_norm = std::sqrt(gravity[0] * gravity[0] + gravity[1] * gravity[1] + gravity[2] * gravity[2]);
     double m_norm = std::sqrt(m_avg[0] * m_avg[0] + m_avg[1] * m_avg[1] + m_avg[2] * m_avg[2]);
     
     // Check for zero vectors
@@ -188,7 +192,7 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
     }
     
     // Normalize sensor measurements
-    std::array<double, 3> g_unit = {g_avg[0] / g_norm, g_avg[1] / g_norm, g_avg[2] / g_norm};
+    std::array<double, 3> g_unit = {gravity[0] / g_norm, gravity[1] / g_norm, gravity[2] / g_norm};
     std::array<double, 3> m_unit = {m_avg[0] / m_norm, m_avg[1] / m_norm, m_avg[2] / m_norm};
     
     // Build rotation matrix: bdy_R_nav (body frame w.r.t. navigation NED frame)
