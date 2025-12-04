@@ -231,8 +231,8 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
        
     // For debugging: show roll/pitch from accel only
     std::array<double, 3> rp_accel;
-    rp_accel[0] = std::atan2(g_avg[1], g_avg[2]);
-    rp_accel[1] = std::atan2(-g_avg[0], std::sqrt(g_avg[1] * g_avg[1] + g_avg[2] * g_avg[2]));
+    rp_accel[0] = std::atan2(gravity[1], gravity[2]);
+    rp_accel[1] = std::atan2(-gravity[0], std::sqrt(gravity[1] * gravity[1] + gravity[2] * gravity[2]));
     std::cout << "Accel-only RPY (deg): Roll: " << rp_accel[0] * 180.0 / M_PI
               << ", Pitch: " << rp_accel[1] * 180.0 / M_PI << "\n";
 
