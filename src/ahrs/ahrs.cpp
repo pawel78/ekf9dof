@@ -224,9 +224,7 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
 
     // Convert rotation matrix to quaternion
     Quat bdy_q_nav = Quat::from_rotation_matrix(bdy_R_nav);
-    nav_q_bdy_ = bdy_q_nav.conjugate();
-    bdy_q_nav_ = bdy_q_nav;
-    
+       
     // For debugging: show roll/pitch from accel only
     std::array<double, 3> rp_accel;
     rp_accel[0] = std::atan2(g_avg[1], g_avg[2]);
@@ -242,7 +240,7 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
     std::cout << "Magnetic heading (before declination): " << mag_heading * 180.0 / M_PI << " deg\n";
     
     // Extract Euler angles (roll, pitch, yaw) from quaternion
-    bdy_rpy_nav_ = nav_q_bdy_.to_euler();
+    bdy_rpy_nav_ = bdy_q_nav.to_euler();
 }
 std::array<double, 3> Ahrs::extract_rpy() const
 {
