@@ -175,10 +175,9 @@ void Ahrs::ahrs_thread_func(Ahrs *ahrs)
 }
 void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg)
 {
-    // Initialize AHRS state
-    // Implementation of state initialization goes here
-    // build rotation matrix from accelerometer and magnetometer averages
-    std::array<std::array<double, 3>, 3> imu_R_nav;
+    // Initialize AHRS state from averaged sensor data during stationary alignment
+    // Build rotation matrix to express body frame in navigation (NED) frame
+    
     double g_norm = std::sqrt(g_avg[0] * g_avg[0] + g_avg[1] * g_avg[1] + g_avg[2] * g_avg[2]);
     double m_norm = std::sqrt(m_avg[0] * m_avg[0] + m_avg[1] * m_avg[1] + m_avg[2] * m_avg[2]);
     
@@ -188,48 +187,59 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
         return;
     }
     
-    for (size_t i = 0; i < 3; ++i)
-    {
-        imu_R_nav[i][0] = g_avg[i] / g_norm; // normalize gravity vector
-        imu_R_nav[i][2] = m_avg[i] / m_norm; // normalize mag vector
-    }
-    // cross product of gravity and mag (g_avg x m_avg) to get 2nd column
-    std::array<double, 3> r;
-    r[0] = g_avg[1] * m_avg[2] - g_avg[2] * m_avg[1];
-    r[1] = g_avg[2] * m_avg[0] - g_avg[0] * m_avg[2];
-    r[2] = g_avg[0] * m_avg[1] - g_avg[1] * m_avg[0];
-
-    double r_norm = std::sqrt(r[0] * r[0] + r[1] * r[1] + r[2] * r[2]);
+    // Normalize sensor measurements
+    std::array<double, 3> g_unit = {g_avg[0] / g_norm, g_avg[1] / g_norm, g_avg[2] / g_norm};
+    std::array<double, 3> m_unit = {m_avg[0] / m_norm, m_avg[1] / m_norm, m_avg[2] / m_norm};
     
-    if (r_norm < 1e-6) {
-        std::cerr << "ERROR: Cross product is zero in state_init!\n";
+    // Build rotation matrix: bdy_R_nav (body frame w.r.t. navigation NED frame)
+    // For NED: Down = gravity direction, East = (Down × mag_horizontal), North = (East × Down)
+    std::array<std::array<double, 3>, 3> bdy_R_nav;
+    
+    // Column 2 (Down): Aligned with gravity
+    bdy_R_nav[0][2] = g_unit[0];
+    bdy_R_nav[1][2] = g_unit[1];
+    bdy_R_nav[2][2] = g_unit[2];
+    
+    // Column 1 (East): Perpendicular to Down and magnetic field (Down × mag)
+    std::array<double, 3> east;
+    east[0] = g_unit[1] * m_unit[2] - g_unit[2] * m_unit[1];
+    east[1] = g_unit[2] * m_unit[0] - g_unit[0] * m_unit[2];
+    east[2] = g_unit[0] * m_unit[1] - g_unit[1] * m_unit[0];
+    
+    double east_norm = std::sqrt(east[0] * east[0] + east[1] * east[1] + east[2] * east[2]);
+    
+    if (east_norm < 1e-6) {
+        std::cerr << "ERROR: Gravity and mag are parallel in state_init!\n";
         return;
     }
     
-    for (size_t i = 0; i < 3; ++i)
-    {
-        imu_R_nav[i][1] = r[i] / r_norm; // normalize
-    }
+    bdy_R_nav[0][1] = east[0] / east_norm;
+    bdy_R_nav[1][1] = east[1] / east_norm;
+    bdy_R_nav[2][1] = east[2] / east_norm;
+    
+    // Column 0 (North): Complete right-handed system (East × Down)
+    bdy_R_nav[0][0] = bdy_R_nav[1][1] * bdy_R_nav[2][2] - bdy_R_nav[2][1] * bdy_R_nav[1][2];
+    bdy_R_nav[1][0] = bdy_R_nav[2][1] * bdy_R_nav[0][2] - bdy_R_nav[0][1] * bdy_R_nav[2][2];
+    bdy_R_nav[2][0] = bdy_R_nav[0][1] * bdy_R_nav[1][2] - bdy_R_nav[1][1] * bdy_R_nav[0][2];
 
     // Convert rotation matrix to quaternion
-    imu_q_nav_ = Quat::from_rotation_matrix(imu_R_nav);
-    nav_q_bdy_ = bdy_q_imu_ * imu_q_nav_;
-    bdy_q_nav_ = nav_q_bdy_.conjugate();
-
-    // extract roll and pitch from acceleromter only and print resutls to screen
+    Quat bdy_q_nav = Quat::from_rotation_matrix(bdy_R_nav);
+    nav_q_bdy_ = bdy_q_nav.conjugate();
+    bdy_q_nav_ = bdy_q_nav;
+    
+    // For debugging: show roll/pitch from accel only
     std::array<double, 3> rp_accel;
-    rp_accel[0] = std::atan2(imu_g_avg_[1], imu_g_avg_[2]);
-    rp_accel[1] = std::atan2(-imu_g_avg_[0], std::sqrt(imu_g_avg_[1] * imu_g_avg_[1] + imu_g_avg_[2] * imu_g_avg_[2]));
-    rp_accel[2] = 0.0; // yaw is zero for accel-only
+    rp_accel[0] = std::atan2(g_avg[1], g_avg[2]);
+    rp_accel[1] = std::atan2(-g_avg[0], std::sqrt(g_avg[1] * g_avg[1] + g_avg[2] * g_avg[2]));
     std::cout << "Accel-only RPY (deg): Roll: " << rp_accel[0] * 180.0 / M_PI
               << ", Pitch: " << rp_accel[1] * 180.0 / M_PI << "\n";
 
-    // generate a tmp quaternion from accel-only roll and pitch
+    // Compute magnetic heading in local level frame for debugging
+    // Rotate mag to level frame (remove tilt)
     Quat i_q_bdy = Quat::from_euler(rp_accel);
-    Quat bdy_q_i = i_q_bdy.conjugate();
-    std::array<double, 3> m_i = bdy_q_i * m_avg;
-    std::cout << "Computed mag in i-frame: [" << m_i[0] << ", " << m_i[1] << ", " << m_i[2] << "]\n";
-    std::cout << "Computed yaw from mag: " << std::atan2(-m_i[1], m_i[0]) * 180.0 / M_PI << " deg\n";
+    std::array<double, 3> m_level = i_q_bdy * m_avg;
+    double mag_heading = std::atan2(m_level[1], m_level[0]); // East, North components
+    std::cout << "Magnetic heading (before declination): " << mag_heading * 180.0 / M_PI << " deg\n";
     
     // Extract Euler angles (roll, pitch, yaw) from quaternion
     bdy_rpy_nav_ = nav_q_bdy_.to_euler();
