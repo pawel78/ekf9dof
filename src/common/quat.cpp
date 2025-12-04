@@ -147,6 +147,7 @@ std::array<std::array<double, 3>, 3> Quat::to_rotation_matrix() const {
 
 std::array<double, 3> Quat::to_euler() const {
     // Convert quaternion to 321 Euler angles (roll, pitch, yaw)
+    // For 321 (ZYX) sequence with Hamilton convention [x,y,z,w]
     
     const double qx = data_[0];
     const double qy = data_[1];
@@ -154,15 +155,15 @@ std::array<double, 3> Quat::to_euler() const {
     const double qw = data_[3];
     
     // 321 Euler angles from quaternion
-    // For quaternion q = qRoll * qPitch * qYaw
+    // Standard aerospace convention for ZYX sequence
     
     // Roll (φ) - rotation about X-axis  
-    const double sinr_cosp = 2.0 * (qw * qx - qy * qz);
+    const double sinr_cosp = 2.0 * (qw * qx + qy * qz);
     const double cosr_cosp = 1.0 - 2.0 * (qx * qx + qy * qy);
     const double roll = std::atan2(sinr_cosp, cosr_cosp);
     
     // Pitch (θ) - rotation about Y-axis
-    const double sinp = 2.0 * (qw * qy + qz * qx);
+    const double sinp = 2.0 * (qw * qy - qz * qx);
     double pitch;
     if (std::abs(sinp) >= 1.0) {
         // Gimbal lock case
@@ -171,8 +172,8 @@ std::array<double, 3> Quat::to_euler() const {
         pitch = std::asin(sinp);
     }
     
-        // Yaw (ψ) - rotation about Z-axis
-    const double siny_cosp = 2.0 * (qw * qz - qx * qy);
+    // Yaw (ψ) - rotation about Z-axis
+    const double siny_cosp = 2.0 * (qw * qz + qx * qy);
     const double cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz);
     const double yaw = std::atan2(siny_cosp, cosy_cosp);
     
