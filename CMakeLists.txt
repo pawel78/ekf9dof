@@ -44,6 +44,7 @@ set(LIB_SOURCES
     src/common/config_loader.cpp
     src/imu/processing/imu_preprocessor.cpp
     src/ahrs/ahrs.cpp
+    src/logging/data_logger.cpp
 )
 
 # Create the main executable
@@ -71,6 +72,17 @@ add_executable(bin2csv tools/bin2csv.cpp)
 # sensor2csv - Convert per-sensor binary logs to CSV format
 add_executable(sensor2csv tools/sensor2csv.cpp)
 
+# imu_logger - Data logger for preprocessor output
+add_executable(imu_logger 
+    src/logging/data_logger.cpp
+    src/logging/logger_main.cpp
+)
+target_include_directories(imu_logger 
+    PUBLIC 
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(imu_logger PRIVATE nng)
+
 # Enable testing
 enable_testing()
 add_subdirectory(tests)
@@ -81,7 +93,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/examples)
 endif()
 
 # Installation rules
-install(TARGETS ${PROJECT_NAME} bin2csv sensor2csv
+install(TARGETS ${PROJECT_NAME} bin2csv sensor2csv imu_logger
     RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
