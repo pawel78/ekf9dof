@@ -244,7 +244,7 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
 }
 std::array<double, 3> Ahrs::extract_rpy() const
 {
-    return nav_q_bdy_.to_euler();
+    return bdy_q_nav_.to_euler();
 }
 
 bool Ahrs::stationary_initial_alignment()
