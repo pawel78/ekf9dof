@@ -323,4 +323,60 @@ namespace config_loader
         return found_bias && found_matrix;
     }
 
+    bool load_imu_to_body_rotation(const std::string &config_path,
+                                    std::array<float, 9> &rotation_matrix)
+    {
+        std::ifstream file(config_path);
+        if (!file.is_open())
+        {
+            return false;
+        }
+
+        std::string line;
+        std::string matrix_content;
+        bool found_rotation = false;
+
+        while (std::getline(file, line))
+        {
+            // Look for imu_to_body_dcm
+            if (line.find("imu_to_body_dcm:") != std::string::npos)
+            {
+                // Check if the array starts on the same line
+                size_t bracket_pos = line.find('[');
+                if (bracket_pos != std::string::npos)
+                {
+                    matrix_content = line.substr(bracket_pos);
+                    
+                    // If the array doesn't close on the same line, read more lines
+                    if (line.find(']') == std::string::npos)
+                    {
+                        std::string next_line;
+                        while (std::getline(file, next_line))
+                        {
+                            matrix_content += next_line;
+                            if (next_line.find(']') != std::string::npos)
+                            {
+                                break;
+                            }
+                        }
+                    }
+
+                    std::vector<float> values;
+                    if (parse_float_array(matrix_content, values) && values.size() == 9)
+                    {
+                        for (size_t i = 0; i < 9; ++i)
+                        {
+                            rotation_matrix[i] = values[i];
+                        }
+                        found_rotation = true;
+                    }
+                }
+                break;
+            }
+        }
+
+        file.close();
+        return found_rotation;
+    }
+
 } // namespace config_loader

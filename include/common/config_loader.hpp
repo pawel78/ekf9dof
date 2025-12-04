@@ -34,4 +34,16 @@ bool load_gyro_calibration(const std::string& config_path,
                           std::array<float, 3>& mag_bias,
                           std::array<float, 9>& mag_matrix);
 
+/**
+ * @brief Load IMU-to-body frame rotation matrix from config file
+ * 
+ * Reads imu_to_body_dcm from the config file.
+ * 
+ * @param config_path Path to config.yaml file
+ * @param rotation_matrix Output: 9-element array for rotation matrix (row-major)
+ * @return true if rotation matrix was loaded successfully, false otherwise
+ */
+bool load_imu_to_body_rotation(const std::string& config_path,
+                                std::array<float, 9>& rotation_matrix);
+
 } // namespace config_loader

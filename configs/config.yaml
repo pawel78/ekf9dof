@@ -11,6 +11,12 @@ sensor:
     accel_g:  4
     mag_gauss: 4
 
+# the imu sensor is not aligned with the body frame of the vehicle;
+# specify the rotation from sensor to body frame as a direction cosine matrix (row-major)
+imu_to_body_dcm:
+  [ 0,  0,  1,
+    1,  0,  0,
+    0,  1,  0]
 calibration:
   gyro_bias: [0.0, 0.0, 0.0]
   gyro_matrix: [1.0, 0.0, 0.0,

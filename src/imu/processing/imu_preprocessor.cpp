@@ -36,55 +36,62 @@ void IMUPreprocessor::estimate_gyro_bias()
         std::cout << "  Bias: [" << gyro_bias_[0] << ", " << gyro_bias_[1] << ", " << gyro_bias_[2] << "]\n";
     }
 }
-void IMUPreprocessor::apply_mag_calibration(float mx_raw, float my_raw, float mz_raw, float &mx_cal, float &my_cal, float &mz_cal)
+void IMUPreprocessor::apply_mag_calibration(const std::array<float, 3> &m_raw, std::array<float, 3> &m_cal)
 {
     if (!mag_calibration_loaded_)
     {
-        mx_cal = mx_raw;
-        my_cal = my_raw;
-        mz_cal = mz_raw;
+        m_cal = m_raw;
         return;
     }
 
     // Apply hard iron correction (subtract bias)
-    float mx_bias_corrected = mx_raw - mag_bias_[0];
-    float my_bias_corrected = my_raw - mag_bias_[1];
-    float mz_bias_corrected = mz_raw - mag_bias_[2];
+    float mx_bias_corrected = m_raw[0] - mag_bias_[0];
+    float my_bias_corrected = m_raw[1] - mag_bias_[1];
+    float mz_bias_corrected = m_raw[2] - mag_bias_[2];
 
     // Apply soft iron correction (matrix multiplication)
-    mx_cal = mag_matrix_[0] * mx_bias_corrected + mag_matrix_[1] * my_bias_corrected + mag_matrix_[2] * mz_bias_corrected;
-    my_cal = mag_matrix_[3] * mx_bias_corrected + mag_matrix_[4] * my_bias_corrected + mag_matrix_[5] * mz_bias_corrected;
-    mz_cal = mag_matrix_[6] * mx_bias_corrected + mag_matrix_[7] * my_bias_corrected + mag_matrix_[8] * mz_bias_corrected;
+    m_cal[0] = mag_matrix_[0] * mx_bias_corrected + mag_matrix_[1] * my_bias_corrected + mag_matrix_[2] * mz_bias_corrected;
+    m_cal[1] = mag_matrix_[3] * mx_bias_corrected + mag_matrix_[4] * my_bias_corrected + mag_matrix_[5] * mz_bias_corrected;
+    m_cal[2] = mag_matrix_[6] * mx_bias_corrected + mag_matrix_[7] * my_bias_corrected + mag_matrix_[8] * mz_bias_corrected;
 }
 
-void IMUPreprocessor::apply_accel_calibration(float ax_raw, float ay_raw, float az_raw, float &ax_cal, float &ay_cal, float &az_cal)
+void IMUPreprocessor::apply_accel_calibration(const std::array<float, 3> &a_raw, std::array<float, 3> &a_cal)
 {
     if (!accel_calibration_loaded_)
     {
-        ax_cal = ax_raw;
-        ay_cal = ay_raw;
-        az_cal = az_raw;
+        a_cal = a_raw;
         return;
     }
 
     // Apply hard iron correction (subtract bias)
-    float ax_bias_corrected = ax_raw - accel_bias_[0];
-    float ay_bias_corrected = ay_raw - accel_bias_[1];
-    float az_bias_corrected = az_raw - accel_bias_[2];
+    float ax_bias_corrected = a_raw[0] - accel_bias_[0];
+    float ay_bias_corrected = a_raw[1] - accel_bias_[1];
+    float az_bias_corrected = a_raw[2] - accel_bias_[2];
 
     // Apply soft iron correction (matrix multiplication)
-    ax_cal = accel_matrix_[0] * ax_bias_corrected + accel_matrix_[1] * ay_bias_corrected + accel_matrix_[2] * az_bias_corrected;
-    ay_cal = accel_matrix_[3] * ax_bias_corrected + accel_matrix_[4] * ay_bias_corrected + accel_matrix_[5] * az_bias_corrected;
-    az_cal = accel_matrix_[6] * ax_bias_corrected + accel_matrix_[7] * ay_bias_corrected + accel_matrix_[8] * az_bias_corrected;
+    a_cal[0] = accel_matrix_[0] * ax_bias_corrected + accel_matrix_[1] * ay_bias_corrected + accel_matrix_[2] * az_bias_corrected;
+    a_cal[1] = accel_matrix_[3] * ax_bias_corrected + accel_matrix_[4] * ay_bias_corrected + accel_matrix_[5] * az_bias_corrected;
+    a_cal[2] = accel_matrix_[6] * ax_bias_corrected + accel_matrix_[7] * ay_bias_corrected + accel_matrix_[8] * az_bias_corrected;
 }
 
-void IMUPreprocessor::apply_gyro_calibration(float gx_raw, float gy_raw, float gz_raw,
-                                             float &gx_cal, float &gy_cal, float &gz_cal)
+void IMUPreprocessor::apply_gyro_calibration(const std::array<float, 3> &g_raw, std::array<float, 3> &g_cal)
 {
-    // Apply soft iron correction (matrix multiplication)
-    gx_cal = gyro_matrix_[0] * gx_raw + gyro_matrix_[1] * gy_raw + gyro_matrix_[2] * gz_raw;
-    gy_cal = gyro_matrix_[3] * gx_raw + gyro_matrix_[4] * gy_raw + gyro_matrix_[5] * gz_raw;
-    gz_cal = gyro_matrix_[6] * gx_raw + gyro_matrix_[7] * gy_raw + gyro_matrix_[8] * gz_raw;
+    // Apply bias correction and matrix multiplication
+    float gx_bias_corrected = g_raw[0] - gyro_bias_[0];
+    float gy_bias_corrected = g_raw[1] - gyro_bias_[1];
+    float gz_bias_corrected = g_raw[2] - gyro_bias_[2];
+    
+    g_cal[0] = gyro_matrix_[0] * gx_bias_corrected + gyro_matrix_[1] * gy_bias_corrected + gyro_matrix_[2] * gz_bias_corrected;
+    g_cal[1] = gyro_matrix_[3] * gx_bias_corrected + gyro_matrix_[4] * gy_bias_corrected + gyro_matrix_[5] * gz_bias_corrected;
+    g_cal[2] = gyro_matrix_[6] * gx_bias_corrected + gyro_matrix_[7] * gy_bias_corrected + gyro_matrix_[8] * gz_bias_corrected;
+}
+
+void IMUPreprocessor::rotate_imu_to_bdy(const std::array<float, 3> &v_imu, std::array<float, 3> &v_bdy)
+{
+    // Apply rotation matrix: v_bdy = bdy_R_imu * v_imu
+    v_bdy[0] = bdy_R_imu_[0] * v_imu[0] + bdy_R_imu_[1] * v_imu[1] + bdy_R_imu_[2] * v_imu[2];
+    v_bdy[1] = bdy_R_imu_[3] * v_imu[0] + bdy_R_imu_[4] * v_imu[1] + bdy_R_imu_[5] * v_imu[2];
+    v_bdy[2] = bdy_R_imu_[6] * v_imu[0] + bdy_R_imu_[7] * v_imu[1] + bdy_R_imu_[8] * v_imu[2];
 }
 
 IMUPreprocessor::IMUPreprocessor()
@@ -114,8 +121,14 @@ IMUPreprocessor::IMUPreprocessor()
                     0.0f, 0.0f, 1.0f};
     gyro_calibration_loaded_ = false;
     calibration_loaded_ = false;
+    
+    // Initialize IMU-to-body rotation to identity
+    bdy_R_imu_ = {1.0f, 0.0f, 0.0f,
+                  0.0f, 1.0f, 0.0f,
+                  0.0f, 0.0f, 1.0f};
+    imu_rotation_loaded_ = false;
 
-    stationary_gyro_cal_ = false;
+    stationary_gyro_cal_ = true;
     sum_gx_ = 0.0;
     sum_gy_ = 0.0;
     sum_gz_ = 0.0;
@@ -158,6 +171,20 @@ IMUPreprocessor::IMUPreprocessor()
     {
         std::cout << "⚠ No gyroscope calibration found\n";
         std::cout << "  → Will estimate gyro bias on startup (keep IMU stationary!)\n";
+    }
+    
+    // Try to load IMU-to-body frame rotation
+    if (config_loader::load_imu_to_body_rotation("../configs/config.yaml", bdy_R_imu_))
+    {
+        imu_rotation_loaded_ = true;
+        std::cout << "✓ IMU-to-body rotation loaded\n";
+        std::cout << "  [" << bdy_R_imu_[0] << ", " << bdy_R_imu_[1] << ", " << bdy_R_imu_[2] << "]\n";
+        std::cout << "  [" << bdy_R_imu_[3] << ", " << bdy_R_imu_[4] << ", " << bdy_R_imu_[5] << "]\n";
+        std::cout << "  [" << bdy_R_imu_[6] << ", " << bdy_R_imu_[7] << ", " << bdy_R_imu_[8] << "]\n";
+    }
+    else
+    {
+        std::cout << "⚠ No IMU-to-body rotation found (using identity)\n";
     }
 
     // Overall calibration status
@@ -210,7 +237,17 @@ bool IMUPreprocessor::get_gyro_measurement(float &gx, float &gy, float &gz)
     // Only apply calibration if we received new data
     if (have_data)
     {
-        apply_gyro_calibration(gyro.x, gyro.y, gyro.z, yg_[0], yg_[1], yg_[2]);
+        // First rotate from IMU frame to body frame
+        std::array<float, 3> yg_imu = {gyro.x, gyro.y, gyro.z};
+        std::array<float, 3> yg_bdy;
+        rotate_imu_to_bdy(yg_imu, yg_bdy);
+        
+        // Then apply calibration
+        std::array<float, 3> yg_cal;
+        apply_gyro_calibration(yg_bdy, yg_cal);
+        yg_[0] = yg_cal[0];
+        yg_[1] = yg_cal[1];
+        yg_[2] = yg_cal[2];
     }
 
     gx = yg_[0];
@@ -228,7 +265,17 @@ bool IMUPreprocessor::get_accel_measurement(float &ax, float &ay, float &az)
     // Only apply calibration if we received new data
     if (have_data)
     {
-        apply_accel_calibration(accel.x, accel.y, accel.z, ya_[0], ya_[1], ya_[2]);
+        // First rotate from IMU frame to body frame
+        std::array<float, 3> ya_imu = {accel.x, accel.y, accel.z};
+        std::array<float, 3> ya_bdy;
+        rotate_imu_to_bdy(ya_imu, ya_bdy);
+        
+        // Then apply calibration
+        std::array<float, 3> ya_cal;
+        apply_accel_calibration(ya_bdy, ya_cal);
+        ya_[0] = ya_cal[0];
+        ya_[1] = ya_cal[1];
+        ya_[2] = ya_cal[2];
     }
 
     ax = ya_[0];
@@ -247,7 +294,17 @@ bool IMUPreprocessor::get_mag_measurement(float &mx, float &my, float &mz)
     // Only apply calibration if we received new data
     if (have_data)
     {
-        apply_mag_calibration(mag.x, mag.y, mag.z, ym_[0], ym_[1], ym_[2]);
+        // First rotate from IMU frame to body frame
+        std::array<float, 3> ym_imu = {mag.x, mag.y, mag.z};
+        std::array<float, 3> ym_bdy;
+        rotate_imu_to_bdy(ym_imu, ym_bdy);
+        
+        // Then apply calibration
+        std::array<float, 3> ym_cal;
+        apply_mag_calibration(ym_bdy, ym_cal);
+        ym_[0] = ym_cal[0];
+        ym_[1] = ym_cal[1];
+        ym_[2] = ym_cal[2];
     }
 
     mx = ym_[0];

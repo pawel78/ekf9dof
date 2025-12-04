@@ -34,6 +34,10 @@ private:
     std::array<float, 3> gyro_bias_;
     std::array<float, 9> gyro_matrix_;
     bool gyro_calibration_loaded_;
+    
+    // IMU-to-body frame rotation matrix
+    std::array<float, 9> bdy_R_imu_;
+    bool imu_rotation_loaded_;
 
     double sum_gx_;
     double sum_gy_;
@@ -58,9 +62,12 @@ private:
 
     // Calibration application methods
     void estimate_gyro_bias();
-    void apply_mag_calibration(float mx_raw, float my_raw, float mz_raw, float &mx_cal, float &my_cal, float &mz_cal);
-    void apply_accel_calibration(float ax_raw, float ay_raw, float az_raw, float &ax_cal, float &ay_cal, float &az_cal);
-    void apply_gyro_calibration(float gx_raw, float gy_raw, float gz_raw, float &gx_cal, float &gy_cal, float &gz_cal);
+    void apply_mag_calibration(const std::array<float, 3> &m_raw, std::array<float, 3> &m_cal);
+    void apply_accel_calibration(const std::array<float, 3> &a_raw, std::array<float, 3> &a_cal);
+    void apply_gyro_calibration(const std::array<float, 3> &g_raw, std::array<float, 3> &g_cal);
+    
+    // Rotate vector from IMU frame to body frame
+    void rotate_imu_to_bdy(const std::array<float, 3> &v_imu, std::array<float, 3> &v_bdy);
 
     // Static thread function (same pattern as driver)
     static void preprocessor_thread_func(IMUPreprocessor* preprocessor);
