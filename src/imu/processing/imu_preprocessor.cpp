@@ -397,18 +397,27 @@ void IMUPreprocessor::preprocessor_thread_func(IMUPreprocessor *preprocessor)
             preprocessor->nng_accel_sub_->try_receive(accel_init) &&
             preprocessor->nng_mag_sub_->try_receive(mag_init))
         {
-            // Store initial values into member variables
-            preprocessor->yg_[0] = gyro_init.x;
-            preprocessor->yg_[1] = gyro_init.y;
-            preprocessor->yg_[2] = gyro_init.z;
+            // Apply IMU-to-body rotation before storing initial values
+            std::array<float, 3> yg_imu = {gyro_init.x, gyro_init.y, gyro_init.z};
+            std::array<float, 3> yg_bdy;
+            preprocessor->rotate_imu_to_bdy(yg_imu, yg_bdy);
+            preprocessor->yg_[0] = yg_bdy[0];
+            preprocessor->yg_[1] = yg_bdy[1];
+            preprocessor->yg_[2] = yg_bdy[2];
             
-            preprocessor->ya_[0] = accel_init.x;
-            preprocessor->ya_[1] = accel_init.y;
-            preprocessor->ya_[2] = accel_init.z;
+            std::array<float, 3> ya_imu = {accel_init.x, accel_init.y, accel_init.z};
+            std::array<float, 3> ya_bdy;
+            preprocessor->rotate_imu_to_bdy(ya_imu, ya_bdy);
+            preprocessor->ya_[0] = ya_bdy[0];
+            preprocessor->ya_[1] = ya_bdy[1];
+            preprocessor->ya_[2] = ya_bdy[2];
             
-            preprocessor->ym_[0] = mag_init.x;
-            preprocessor->ym_[1] = mag_init.y;
-            preprocessor->ym_[2] = mag_init.z;
+            std::array<float, 3> ym_imu = {mag_init.x, mag_init.y, mag_init.z};
+            std::array<float, 3> ym_bdy;
+            preprocessor->rotate_imu_to_bdy(ym_imu, ym_bdy);
+            preprocessor->ym_[0] = ym_bdy[0];
+            preprocessor->ym_[1] = ym_bdy[1];
+            preprocessor->ym_[2] = ym_bdy[2];
             
             std::cout << "✓ First sensor data received from driver\n";
             break;
