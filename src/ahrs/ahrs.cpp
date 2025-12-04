@@ -229,7 +229,8 @@ void Ahrs::state_init(std::array<double, 3> &m_avg, std::array<double, 3> &g_avg
     Quat bdy_q_i = i_q_bdy.conjugate();
     std::array<double, 3> m_i = bdy_q_i * m_avg;
     std::cout << "Computed mag in i-frame: [" << m_i[0] << ", " << m_i[1] << ", " << m_i[2] << "]\n";
-
+    std::cout << "Computed yaw from mag: " << std::atan2(-m_i[1], m_i[0]) * 180.0 / M_PI << " deg\n";
+    
     // Extract Euler angles (roll, pitch, yaw) from quaternion
     bdy_rpy_nav_ = nav_q_bdy_.to_euler();
 }
