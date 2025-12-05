@@ -7,6 +7,7 @@ The data logger subscribes to preprocessor output channels (calibrated IMU data)
 ## Features
 
 - **Multi-channel logging**: Subscribes to gyro, accel, mag, and temp channels simultaneously
+- **Timestamped filenames**: Automatically generates unique filenames with timestamp (YYYYMMDD_HHMMSS_mmm)
 - **Binary format**: Compact, efficient storage with precise timestamps
 - **Non-blocking**: Uses non-blocking receives to handle multiple channels efficiently
 - **Statistics tracking**: Reports message count, bytes written, and data rate
@@ -18,11 +19,15 @@ The data logger subscribes to preprocessor output channels (calibrated IMU data)
 ### Basic Usage
 
 ```bash
-# Log all preprocessor output to default location
+# Log with auto-generated timestamped filename to data/logs/
+# Creates: data/logs/imu_log_YYYYMMDD_HHMMSS.bin
 ./imu_logger
 
-# Specify output file
-./imu_logger data/my_log.bin
+# Specify custom output file (disables auto-timestamp)
+./imu_logger data/my_custom_log.bin
+
+# Use auto-timestamp but different directory
+./imu_logger "" custom_logs/
 ```
 
 ### Running with the System
@@ -32,9 +37,10 @@ The data logger subscribes to preprocessor output channels (calibrated IMU data)
 ./ekf9dof
 ```
 
-2. In another terminal, start the logger:
+2. In another terminal, start the logger with timestamped filename:
 ```bash
-./imu_logger data/flight_test_001.bin
+./imu_logger
+# Output: data/logs/imu_log_20251204_143022.bin
 ```
 
 3. Press Ctrl+C to stop logging when done
@@ -45,9 +51,16 @@ Use the provided Python tool to convert binary logs to CSV format:
 
 ```bash
 # Convert to CSV files (creates separate file per sensor)
-python3 tools/log2csv.py data/flight_test_001.bin
+# Automatically preserves timestamp from input filename
+python3 tools/log2csv.py data/logs/imu_log_20251204_143022.bin
 
-# Specify output prefix
+# This creates:
+#   imu_log_20251204_143022_gyro.csv
+#   imu_log_20251204_143022_accel.csv
+#   imu_log_20251204_143022_mag.csv
+#   imu_log_20251204_143022_temp.csv
+
+# Specify custom output prefix
 python3 tools/log2csv.py data/flight_test_001.bin output/test_001
 ```
 
@@ -56,6 +69,39 @@ This creates:
 - `output/test_001_accel.csv` - Calibrated accelerometer data (g)
 - `output/test_001_mag.csv` - Calibrated magnetometer data (gauss)
 - `output/test_001_temp.csv` - Temperature data (°C)
+
+## Filename Format
+
+### Auto-generated Filenames
+
+When running without arguments, the logger creates timestamped filenames:
+
+```
+Format: imu_log_YYYYMMDD_HHMMSS.bin
+Example: imu_log_20251204_143022.bin
+
+Where:
+  YYYY - Year (4 digits)
+  MM   - Month (01-12)
+  DD   - Day (01-31)
+  HH   - Hour (00-23)
+  MM   - Minute (00-59)
+  SS   - Second (00-59)
+```
+
+### CSV Output Naming
+
+The CSV converter preserves timestamps from input filenames:
+
+```
+Input:  imu_log_20251204_143022.bin
+Output: imu_log_20251204_143022_gyro.csv
+        imu_log_20251204_143022_accel.csv
+        imu_log_20251204_143022_mag.csv
+        imu_log_20251204_143022_temp.csv
+```
+
+This makes it easy to correlate binary logs with their CSV conversions and maintain chronological ordering.
 
 ## Binary File Format
 
@@ -118,7 +164,7 @@ The logger uses the same NNG pub/sub architecture as the rest of the system:
 
 ```
 ┌──────────┐    raw     ┌──────────────┐   proc   ┌────────┐
-│  Driver  │──────────>│ Preprocessor │─────────>│  AHRS  │
+│  Driver  │────────-──>│ Preprocessor │─────────>│  AHRS  │
 └──────────┘            └──────────────┘          └────────┘
                                │
                                │ proc (gyro/accel/mag/temp)

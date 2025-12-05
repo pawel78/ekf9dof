@@ -82,7 +82,14 @@ def read_record(f):
 def convert_to_csv(input_file, output_prefix=None):
     """Convert binary log to separate CSV files per sensor type."""
     if output_prefix is None:
-        output_prefix = Path(input_file).stem
+        # Extract timestamp from filename if present
+        # Format: imu_log_YYYYMMDD_HHMMSS_mmm.bin
+        stem = Path(input_file).stem
+        if stem.startswith('imu_log_'):
+            # Use the same timestamp for CSV files
+            output_prefix = stem
+        else:
+            output_prefix = stem
     
     # Open input file
     with open(input_file, 'rb') as f:
@@ -129,13 +136,13 @@ def convert_to_csv(input_file, output_prefix=None):
                 if msg_type == MSG_TYPE_TEMP:
                     writer.writerow({
                         'timestamp_ns': record['timestamp_ns'],
-                        'timestamp_s': f"{timestamp_s:.6f}",
+                        'timestamp_s': timestamp_s,
                         'temp_c': f"{record['temp']:.2f}"
                     })
                 else:
                     writer.writerow({
                         'timestamp_ns': record['timestamp_ns'],
-                        'timestamp_s': f"{timestamp_s:.6f}",
+                        'timestamp_s': timestamp_s,
                         'x': f"{record['x']:.6f}",
                         'y': f"{record['y']:.6f}",
                         'z': f"{record['z']:.6f}"
